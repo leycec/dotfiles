@@ -1,0 +1,42 @@
+# ====================[ .gitignore                         ]====================
+#
+# --------------------( LICENSE                            )--------------------
+# Copyright 2015-2017 by Cecil Curry.
+# See "LICENSE" for further details.
+#
+# --------------------( SYNOPSIS                           )--------------------
+# Whitelist all files and subdirectories of the current directory matching the
+# following git-specific glob expressions.
+#
+# --------------------( SEE ALSO                           )--------------------
+# For further details, see:
+#
+# * "man gitignore" for high-level commentary.
+# * "man 7 glob" for low-level commentary on glob syntax. Note, in particular,
+#   that glob() and hence ".gitignore" files support only a proper subset of
+#   bash- and zsh-style glob syntax.
+
+# ....................{ BLACKLIST                          }....................
+# Blacklist all paths in the home directory by default.
+*
+
+# ....................{ WHITELIST                          }....................
+# Whitelist the current file.
+!/.gitignore.d
+!/.gitignore.d/vimrc
+
+# Whitelist git hooks of interest to fellow developers.
+!/.githooks
+!/.githooks/github-post-commit
+
+# Whitelist all dotfile-specific paths in the home directory by default. This
+# whitelist may be (and often is) overridden by lower-level ".gitignore" files
+# nested in these paths.
+!/.vimrc
+!/.vim
+!/.vim/**/*
+
+# To avoid synchronization issues with the front-facing "github" branch,
+# whitelist all paths specific to this branch.
+!/LICENSE
+!/README.md

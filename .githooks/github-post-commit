@@ -1,0 +1,43 @@
+#!/usr/bin/env sh
+# --------------------( LICENSE                            )--------------------
+# Copyright 2015-2017 by Cecil Curry.
+# See "LICENSE" for further details.
+#
+# --------------------( SYNOPSIS                           )--------------------
+# Post-commit hook implicitly applying all successful commits to the default
+# branch onto the "github" branch as well.
+#
+# --------------------( INSTALLATION                       )--------------------
+# Since git currently lacks support for tracking hooks in the repository itself, 
+# this (and any other) hook must be installed manually: e.g.,
+#
+#     >>> ln -s ~/.githooks/post-commit "$GIT_DIR"/hooks/
+
+# ....................{ MAIN                               }....................
+# Name of the current branch.
+BRANCH_NAME="$(git rev-parse --abbrev-ref HEAD)"
+
+# If this is a commit to the default branch, attempt to temporarily switch to the
+# "github" branch and...
+if [ "${BRANCH_NAME}" = 'master' ] && git checkout github; then
+    # Attempt to apply this commit to the "github" branch.
+    if git rebase master; then
+        echo '[post-commit] Rebased "github" to "master".'
+    # If such attempt fails, abort such attempt.
+    else
+        echo '[post-commit] Rebasing "github" to "master" failed. Aborting rebase.' 1>&2
+        git rebase --abort
+    fi
+
+    # Attempt to pull all remote changes. Assuming "~/.gitconfig" to contain a
+    # "[pull]" section enabling "rebase = true", this implicitly rebases the
+    # local to the remote "github" branch in preparation for subsequent pushing.
+    if git pull; then
+        echo '[post-commit] Pulled "github".'
+    else
+        echo '[post-commit] Pulling "github" failed.' 1>&2
+    fi
+
+    # In either case, switch back to the default branch.
+    git checkout "${BRANCH_NAME}"
+fi

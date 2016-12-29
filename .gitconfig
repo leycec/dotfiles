@@ -1,0 +1,64 @@
+# ====================[ .gitconfig                         ]====================
+#
+# --------------------( SYNOPSIS                           )--------------------
+# Git dotfile, globally configuring git for the current user.
+
+# ....................{ INCLUDES                           }....................
+# List of the absolute or relative paths of all files conforming to the syntax
+# of this file to be imported into this file, defined as one "path" entry for
+# each such file. Note that "path" entries:
+#
+# * Are silently ignored if not found.
+# * Prefix relative paths by the absolute path of the directory containing the
+#   current file.
+# * Expand a prefixing "~/" to the home directory of the current user.
+# * Do *NOT* expand environment variables (e.g., "${HOME}").
+# * *MUST* be absolute or relative paths; shell glob syntax is *NOT* supported,
+#   excluding the aforementioned "~/" expansion.
+[include]
+    # Absolute path of the user-specific git configuration file defining all
+    # "[user]" credentials for the current user. For security, these credentials
+    # are sequestered into a non-world-readable file *NOT* published to GitHub.
+    #
+    # The contents of this file should resemble:
+    #
+    #     [user]
+    #         name = <ENTER NAME UNQUOTED HERE>
+    #         email = <ENTER E-MAIL UNQUOTED HERE>
+    path = ~/.gitconfig.d/user.cfg
+
+# ....................{ OTHER                              }....................
+[push]
+    default = tracking
+[branch]
+    autosetuprebase = always
+[branch "master"]
+    rebase = true
+[pull]
+    rebase = true
+[alias]
+    a = add
+    b = branch
+    c = commit
+    ci = commit
+    co = checkout
+    cp = cherry-pick
+    d = diff
+    di = diff
+    l = log
+    ls = ls-files
+    pl = pull
+    ps = push
+    r = remote
+    s = status
+    st = status
+[rerere]
+    enabled = true
+[status]
+    showuntrackedfiles = all
+[rebase]
+    stat = true
+[color]
+    ui = auto
+[core]
+    pager = less -FRSX
