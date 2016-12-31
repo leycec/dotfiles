@@ -44,7 +44,7 @@ These dotfiles are preferably installed via [`vcsh`](https://github.com/RichiH/v
 
   * **Install a Git `post-commit` hook**, synchronizing the `master` and `github` branches on every commit to the former. 
 
-            $ ln -s $HOME/.githooks/github-post-commit $GIT_DIR/hooks/post-commit
+            $ ln -s $HOME/.githook.d/dotfiles.post-commit $GIT_DIR/hooks/post-commit
 
   * **Leave the cloned repository.**
 
