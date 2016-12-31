@@ -23,18 +23,16 @@
 # ....................{ WHITELIST                          }....................
 # Whitelist the current file.
 !/.gitignore.d
-!/.gitignore.d/vimrc
+!/.gitignore.d/dotfiles
 
 # Whitelist git hooks of interest to fellow developers.
-!/.githooks
-!/.githooks/github-post-commit
+!/.githook.d
+!/.githook.d/dotfiles.post-commit
 
 # Whitelist all dotfile-specific paths in the home directory by default. This
 # whitelist may be (and often is) overridden by lower-level ".gitignore" files
 # nested in these paths.
-!/.vimrc
-!/.vim
-!/.vim/**/*
+!/.gitconfig
 
 # To avoid synchronization issues with the front-facing "github" branch,
 # whitelist all paths specific to this branch.

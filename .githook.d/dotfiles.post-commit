@@ -23,7 +23,7 @@ if [ "${BRANCH_NAME}" = 'master' ] && git checkout github; then
     # Attempt to apply this commit to the "github" branch.
     if git rebase master; then
         echo '[post-commit] Rebased "github" to "master".'
-    # If such attempt fails, abort such attempt.
+    # If this attempt fails, abort this attempt.
     else
         echo '[post-commit] Rebasing "github" to "master" failed. Aborting rebase.' 1>&2
         git rebase --abort
