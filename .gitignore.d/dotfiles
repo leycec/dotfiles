@@ -8,6 +8,10 @@
 # Whitelist all files and subdirectories of the current directory matching the
 # following git-specific glob expressions.
 #
+# --------------------( CAVEATS                            )--------------------
+# Whitelisting files or subdirectories of top-level subdirectories requires
+# whitelisting those subdirectories first. See the ".gitignore.d/" whitelist.
+#
 # --------------------( SEE ALSO                           )--------------------
 # For further details, see:
 #
@@ -22,17 +26,19 @@
 
 # ....................{ WHITELIST                          }....................
 # Whitelist the current file.
-!/.gitignore.d
+!/.gitignore.d/
 !/.gitignore.d/dotfiles
 
 # Whitelist git hooks of interest to fellow developers.
-!/.githook.d
+!/.githook.d/
 !/.githook.d/dotfiles.post-commit
 
 # Whitelist all dotfile-specific paths in the home directory by default. This
 # whitelist may be (and often is) overridden by lower-level ".gitignore" files
 # nested in these paths.
 !/.gitconfig
+!/.ssh/
+!/.ssh/config
 
 # To avoid synchronization issues with the front-facing "github" branch,
 # whitelist all paths specific to this branch.

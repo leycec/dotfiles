@@ -38,8 +38,10 @@
     rebase = true
 [alias]
     a = add
+    aa = add --all
     b = branch
     c = commit
+    ca = commit --amend
     ci = commit
     co = checkout
     cp = cherry-pick
@@ -50,6 +52,7 @@
     pl = pull
     ps = push
     r = rebase
+    ri = rebase --interactive
     rt = remote
     s = status
     st = status
