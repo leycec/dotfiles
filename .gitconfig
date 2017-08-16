@@ -79,3 +79,6 @@
     enabled = true
 [status]
     showuntrackedfiles = all
+[user]
+	email = leycec@gmail.com
+	name = leycec
