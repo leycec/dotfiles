@@ -25,13 +25,19 @@ These dotfiles are preferably installed via [`vcsh`](https://github.com/RichiH/v
 
             $ git clone https://github.com/RichiH/vcsh && cd vcsh && sudo make install
 
-* **Move aside any existing dotfiles.** Renaming an existing `~/.gitconfig` file to `~/.gitconfig.d/user.conf` ensures that _your_ Git dotfile will be sourced by _our_ Git dotfile on each invocation of Git.
+* **Move aside any existing dotfiles.** Renaming an existing `~/.gitconfig` file to `~/.gitconfig.d/user.cfg` ensures that _your_ Git dotfile will be sourced by _our_ Git dotfile on each invocation of Git.
 
-        $ mkdir ~/.gitconfig.d && mv ~/.gitconfig ~/.gitconfig.d/user.conf
+        $ mkdir ~/.gitconfig.d && mv ~/.gitconfig ~/.gitconfig.d/user.cfg
 
 * **Install this suite of dotfiles.**
 
         $ vcsh clone https://github.com/leycec/dotfiles.git
+
+* (_Optional_) Inform Git of your resplendent identity by appending the following lines to the newly created ``~/.gitconfig.d/user.cfg`` file:
+
+        [user]
+             name = <ENTER NAME UNQUOTED HERE>
+             email = <ENTER E-MAIL UNQUOTED HERE>
 
 * (_Optional_) For fellow Github developers:
   * **Enter the cloned repository.**
