@@ -1,18 +1,18 @@
-# ====================[ .gitignore                         ]====================
+# ====================[ .gitignore                        ]====================
 #
-# --------------------( LICENSE                            )--------------------
-# Copyright 2015-2017 by Cecil Curry.
+# --------------------( LICENSE                           )--------------------
+# Copyright 2008-2018 by Cecil Curry.
 # See "LICENSE" for further details.
 #
-# --------------------( SYNOPSIS                           )--------------------
+# --------------------( SYNOPSIS                          )--------------------
 # Whitelist all files and subdirectories of the current directory matching the
 # following git-specific glob expressions.
 #
-# --------------------( CAVEATS                            )--------------------
+# --------------------( CAVEATS                           )--------------------
 # Whitelisting files or subdirectories of top-level subdirectories requires
 # whitelisting those subdirectories first. See the ".gitignore.d/" whitelist.
 #
-# --------------------( SEE ALSO                           )--------------------
+# --------------------( SEE ALSO                          )--------------------
 # For further details, see:
 #
 # * "man gitignore" for high-level commentary.
@@ -20,11 +20,11 @@
 #   that glob() and hence ".gitignore" files support only a proper subset of
 #   bash- and zsh-style glob syntax.
 
-# ....................{ BLACKLIST                          }....................
+# ....................{ BLACKLIST                         }....................
 # Blacklist all paths in the home directory by default.
 *
 
-# ....................{ WHITELIST                          }....................
+# ....................{ WHITELIST                         }....................
 # Whitelist the current file.
 !/.gitignore.d/
 !/.gitignore.d/dotfiles
@@ -36,9 +36,22 @@
 # Whitelist all dotfile-specific paths in the home directory by default. This
 # whitelist may be (and often is) overridden by lower-level ".gitignore" files
 # nested in these paths.
+!/.bashrc
 !/.gitconfig
 !/.ssh/
 !/.ssh/config
+!/.xinitrc
+!/.Xresources
+!/.Xresources/URxvt
+
+# Whitelist all paths transitively required (e.g., imported, sourced) by
+# dotfile-specific paths whitelisted above. Again, this whitelist may be (and
+# often is) overridden by lower-level ".gitignore" files nested in these paths.
+!/bash/
+!/bash/xorg_init
+!/perl/
+!/perl/cp-pcre
+!/perl/mv-pcre
 
 # To avoid synchronization issues with the front-facing "github" branch,
 # whitelist all paths specific to this branch.

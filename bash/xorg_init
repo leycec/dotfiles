@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# ====================[ xorg_restore                      ]====================
+#
+# --------------------( LICENSE                           )--------------------
+# Copyright 2008-2018 by Cecil Curry.
+# See "LICENSE" for further details.
+#
+# --------------------( SYNOPSIS                          )--------------------
+# User-specific X.org initialization script, typically sourced by the
+# "~/.xinitrc" script for this user.
+#
+# --------------------( PRECEDENCE                        )--------------------
+# This script takes precedent over the system-wide analogue of this script,
+# "/etc/X11/xinit/xinitrc". According to the "xinit" man-page, "To determine
+# the client to run, startx first looks for a file called .xinitrc in the
+# user's home directory. If that is not found, it uses the file xinitrc in the
+# xinit library directory, /etc/X11/xinit/xinitrc."
+#
+# This script, therefore, must perform tasks -- such as importing the
+# "/etc/X11/Xmodmap" file -- traditionally performed by that system-wide
+# script.
+#
+# --------------------( PREFERENCES                       )--------------------
+# Set X.org preferences prior to setting Xresources and Xmodmap preferences, as
+# the X.org preferences depend on symbolic key mappings modified by the latter.
+
+# ....................{ MONITORS                          }....................
+# Force the following resolution, refresh rate, and DPI (in that order).
+#command xrandr --output VGA-0 --mode 1920x1080 --rate 60 --dpi 140
+# command xrandr --output VGA-0 --mode 1920x1080 --rate 60 --dpi 180
+# command xrandr --output VGA-0 --mode 1600x900 --rate 60 --dpi 140
+
+#FIXME: Enable all "xset" and "xkbset"-related commands if the attached
+#keyboard is not a Kinesis. Otherwise, do not. This should probably be
+#extracted into a separate "~/bin/" script.
+
+# ....................{ KEYBOARDS                         }....................
+# The "xkbset" command also governs runtime X.org preferences. Unlike "xset,"
+# the "xkbset" command is not bundled with X.org but must be installed
+# externally. See also:
+#
+# * "xev" for mapping keys to X11-specific keycodes for use with "xmodmap".
+# * "xkbset h" for further details.
+# * "xkbset q" and "xkbset q exp" for all currently enabled preferences and
+#   expiration preferences.
+
+# Disable the audible bell and feedback.
+# command xkbset -bell -feedback
+
+# Enable "sticky keys" for all modifier keys, while also enabling "latchlock"
+# (i.e., pressing any modifier key twice in a row permanently locks that key
+# on) and disabling "twokey" (i.e., pressing any modifier key and another key
+# at the same time permanently disables "sticky keys"). Note that enabling
+# "sticky" automatically enables sticky keys for Apple- and Windows-specific
+# modifier keys as well. In sum, this includes: <Shift>, <Ctrl>, <Alt>, <Fn>,
+# and <Super> (e.g., <Apple>, <Windows>, <Tux>).
+#
+# Due to "xkbset" eccentricities, this command cannot be combined with the
+# above command disabling non-sticky-specific options.
+command xkbset sticky latchlock -twokey
+
+# Disable expiration of "sticky keys" after the specified time in seconds. When
+# expiration is enabled, sticky keys are permanently disabled after that many
+# seconds, which is rather unhelpful.
+command xkbset exp 64 '=sticky' '=twokey' '=latchlock'
+
+# Swap ":" with ";" and "`" with "~", the latter of which are more frequently
+# used for both coding and shell use. Interestingly, although these keys have
+# been logically remapped by our Kinesis keyboard, the X11-specific keycodes
+# for these keys remain the same: 47 and 49. This is verifiable via "xev".
+command xmodmap -e "keycode 47 = colon semicolon"
+# command xmodmap -e "keycode 49 = asciitilde grave"
+
+# The "xset" command governs runtime X.org preferences. These preferences
+# cannot be specified via persisted configuration files, typically; they must
+# be set via execution of this command at runtime.
+#
+# Enable keyboard auto-repeat for <Caps> and small <Enter>, having keycodes 66
+# and 108, respectively.
+# xset r 66
+# xset r 108
+
+# The "setxkbmap" command also governs runtime X.org preferences: specifically,
+# those concerning the keyboard model, layout, et al. from which (specific)
+# keyboard components may be selected.
+#
+# Comment this line if your X.org installation uses pre-X.org 1.5-style input
+# configuration via "/etc/X11/xorg.conf" (i.e., not Evdev-managed input for
+# "hotplugging" input devices).
+# setxkbmap -keycodes evdev -model evdev
