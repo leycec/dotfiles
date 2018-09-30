@@ -89,16 +89,25 @@ if [ -x /usr/bin/dircolors ]; then
     [ -r ~/.dircolors ] &&
         eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
 
-    # Colour "ls" output and all derivatives thereof.
-    LS_OPTIONS='--all --color=auto --group-directories-first --human-readable'
+    # Colour "ls" output and all derivatives thereof. Dismantled, this is:
+    #
+    # * "--color=always", unconditionally enabling colors regardless of
+    #   context. The comparable "--color=auto" option only conditionally
+    #   enables colors if the current command outputs to an interactive shell.
+    #   While *USUALLY* desirable, such detection fails for the common case of
+    #   outputting to a pipe (e.g., "less") outputting to an interactive shell.
+    LS_OPTIONS='--all --color=always --group-directories-first --human-readable'
     alias ls="ls ${LS_OPTIONS}"
     alias dir="dir ${LS_OPTIONS}"
     alias vdir="vdir ${LS_OPTIONS}"
 
     # Colour "grep" output and all derivatives thereof.
-    alias grep='grep --color=auto'
-    alias fgrep='fgrep --color=auto'
-    alias egrep='egrep --color=auto'
+    alias grep='grep --color=always'
+    alias fgrep='fgrep --color=always'
+    alias egrep='egrep --color=always'
+
+    # Configure "less" to preserve control characters and hence color codes.
+    alias less='less --RAW-CONTROL-CHARS'
 fi
 
 # Colour GCC warnings and errors.
@@ -126,6 +135,10 @@ alias rm='rm -i'
 
 # Three-letter aliases for tepid tumescence.
 alias lns='ln -s'
+
+# ....................{ ALIASES ~ coreutils               }....................
+# Configure "coreutils"-based commands with sane defaults.
+alias mkdir='mkdir --parents'
 
 # ....................{ COMPLETIONS                       }....................
 # Enable programmable completion if *NOT* in strict POSIX-compatible mode and
