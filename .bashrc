@@ -158,3 +158,5 @@ fi
 # ....................{ CLEANUP                           }....................
 # Prevent local variables declared above from polluting the environment.
 unset IS_COLOR DEBIAN_CHROOT LS_OPTIONS
+
+[ -f ~/.fzf.bash ] && source ~/.fzf.bash

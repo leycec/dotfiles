@@ -38,6 +38,9 @@
 # nested in these paths.
 !/.bashrc
 !/.gitconfig
+!/.ipython
+!/.ipython/profile_default
+!/.ipython/profile_default/ipython_config.py
 !/.ssh/
 !/.ssh/config
 !/.xinitrc
