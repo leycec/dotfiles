@@ -16,10 +16,21 @@ case $- in
 esac
 # Else, the current shell is interactive. In this case, configure us up.
 
-# ....................{ GLOBALS                           }....................
-# User-specific ":"-delimited list of the absolute paths of all directories to
-# find commands in. 
+# ....................{ GLOBALS ~ path                    }....................
+# Define the current ${PATH} (i.e., user-specific ":"-delimited list of the
+# absolute dirnames of all directories to locate command basenames relative to)
+# *BEFORE* performing any subsequent logic possibly expecting this ${PATH}.
 PATH="${PATH}:${HOME}/bash:${HOME}/perl"
+
+# If Miniconda3 is available, prepend the absolute dirname of the Miniconda3
+# subdirectory defining external commands to the current ${PATH} *AFTER*
+# defining the ${PATH}, ensuring that system-wide commands (e.g., "python3")
+# take precedence over Miniconda3-specific commands of the same basename.
+PATH_MINICONDA3="${HOME}/py/miniconda3/bin"
+[ -d "${PATH_MINICONDA3}" ] && PATH="${PATH_MINICONDA3}:${PATH}"
+
+# Export the current ${PATH} to the parent shell environment.
+export PATH
 
 # ....................{ GLOBALS ~ history                 }....................
 # Avoid appending both duplicate lines and space-prefixed lines to the history.
@@ -151,12 +162,14 @@ if ! shopt -oq posix; then
     fi
 fi
 
+# If bash-specific integration for the Fuzzy File Finder (FZF) is available,
+# locally enable this integration.
+[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+
 # ....................{ CUSTOMIZATIONS                    }....................
 # Customize "less" to behave sanely when piped non-text input files.
 [ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
 # ....................{ CLEANUP                           }....................
 # Prevent local variables declared above from polluting the environment.
-unset IS_COLOR DEBIAN_CHROOT LS_OPTIONS
-
-[ -f ~/.fzf.bash ] && source ~/.fzf.bash
+unset IS_COLOR DEBIAN_CHROOT LS_OPTIONS PATH_MINICONDA3
