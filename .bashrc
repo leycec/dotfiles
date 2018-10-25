@@ -7,13 +7,17 @@
 #
 # --------------------( SYNOPSIS                          )--------------------
 # User-specific "bash" startup script for non-login shells.
+#
+# --------------------( SYNOPSIS                          )--------------------
+# This file is sourced by *ALL* interactive bash shells on startup, including
+# numerous low-level fragile shells (e.g., "scp", "rcp") intolerate of output.
+# To avoid spurious issues, both this script and all commands transitively run
+# by this script *MUST* run silently (i.e., output nothing).
 
 # ....................{ INTERACTIVE                       }....................
-# If the current shell is non-interactive, silently reduce to a noop.
-case $- in
-    *i*) ;;
-      *) return;;
-esac
+# If the current shell is non-interactive, silently reduce to a noop to avoid
+# breaking low-level fragile shells (e.g., "scp", "rcp") intolerate of output.
+[[ $- == *i* ]] || return
 # Else, the current shell is interactive. In this case, configure us up.
 
 # ....................{ GLOBALS ~ path                    }....................
@@ -167,8 +171,26 @@ fi
 [ -f ~/.fzf.bash ] && source ~/.fzf.bash
 
 # ....................{ CUSTOMIZATIONS                    }....................
+#FIXME; Sadly, the following command is Ubuntu-specific and hence fails under
+#Gentoo with the following inscrutable error:
+#    -bash: eval: line 171: syntax error near unexpected token `newline'
+#    -bash: eval: line 171: `Usage: lesspipe <file>'
+#The culprit is, of course, "lesspipe". As there appears to exist *NO*
+#standardized "lesspipe" command, each Linux distribution ships its own
+#distribution-specific mutuall-incompatible variant of "lesspipe". Generalizing
+#this command to transparently support all relevant Linux distributions would
+#thus require:
+#
+#* Detecting whether the current platform is Linux.
+#* If so, detecting whether the current Linux distribution is Ubuntu, Gentoo,
+#  or otherwise.
+#* Conditionally running the appropriate distribution-specific command.
+#
+#Since all of this is fragile and none of this is worthwhile, we avoid doing
+#anything whatsoever here for the moment.
+
 # Customize "less" to behave sanely when piped non-text input files.
-[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+#[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
 # ....................{ CLEANUP                           }....................
 # Prevent local variables declared above from polluting the environment.
