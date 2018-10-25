@@ -46,7 +46,7 @@ These dotfiles are preferably installed via [`vcsh`](https://github.com/RichiH/v
 
   * **Track the `github` branch**, storing front-facing GitHub documentation (including the current file).
 
-            $ git fetch
+            $ git fetch origin github
 
   * **Install a Git `post-commit` hook**, synchronizing the `master` and `github` branches on every commit to the former. 
 
