@@ -36,6 +36,7 @@
 # Whitelist all dotfile-specific paths in the home directory by default. This
 # whitelist may be (and often is) overridden by lower-level ".gitignore" files
 # nested in these paths.
+!/.bash_profile
 !/.bashrc
 !/.gitconfig
 !/.ipython
@@ -46,12 +47,15 @@
 !/.xinitrc
 !/.Xresources
 !/.Xresources/URxvt
+!/.zprofile
+!/.zshrc
 
 # Whitelist all paths transitively required (e.g., imported, sourced) by
 # dotfile-specific paths whitelisted above. Again, this whitelist may be (and
 # often is) overridden by lower-level ".gitignore" files nested in these paths.
 !/bash/
 !/bash/xorg_init
+!/bash/xorg_start
 !/perl/
 !/perl/cp-pcre
 !/perl/mv-pcre

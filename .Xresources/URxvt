@@ -33,73 +33,68 @@
 ! * ZSH and Xft completely muck up the righthand prompt under DPI > 96. I have
 !   no idea why, but it is rather annoying.
 
-! ====================[ Fluake                            ]====================
-! Fluake-specific resources. Sadly, X.org has no mechanism for inheriting,
-! sharing, or otherwise reusing resources. We explicitly repeat ourselves.
-! Synchronize all changes to identical resources below.
-
 ! ....................{ DEPENDENCIES ~ perl               }....................
 ! Load the following external Perl dependencies.
-Fluake.perl-lib:        /usr/lib/urxvt/perl/
-Fluake.perl-ext-common: default,matcher
+URxvt*perl-lib:        /usr/lib/urxvt/perl/
+URxvt*perl-ext-common: default,matcher
 
 ! Activate substrings matched by Perl script "matcher" on the current terminal
 ! with the following mouse button.
-Fluake.matcher.button: 1
+URxvt*matcher.button: 1
 
-# ....................{ MAIN                              }....................
-Fluake.geometry:   120x32
-Fluake.borderLess: true
-Fluake.insecure:   true
-Fluake.saveLines:  2048
+! ....................{ MAIN                              }....................
+URxvt*geometry:   120x32
+URxvt*borderLess: true
+URxvt*insecure:   true
+URxvt*saveLines:  2048
 
-# ....................{ SECONDARY SCREEN                  }....................
+! ....................{ SECONDARY SCREEN                  }....................
 ! A secondary buffer for restoring the screen on quitting "less", "vim", et al.
-Fluake.secondaryScreen: true
-Fluake.secondaryScroll: true
+URxvt*secondaryScreen: true
+URxvt*secondaryScroll: true
 
-# ....................{ INPUT CURSOR                      }....................
-Fluake.cursorBlink: false
+! ....................{ INPUT CURSOR                      }....................
+URxvt*cursorBlink: false
 
-# ....................{ MOUSE POINTER                     }....................
-Fluake.pointerColor:      white
-Fluake.pointerColor2:     black
-Fluake.pointerBlank:      true
-Fluake.pointerBlankDelay: 1
-Fluake.tripleclickwords:  true
+! ....................{ MOUSE POINTER                     }....................
+URxvt*pointerColor:      white
+URxvt*pointerColor2:     black
+URxvt*pointerBlank:      true
+URxvt*pointerBlankDelay: 1
+URxvt*tripleclickwords:  true
 
-# ....................{ SCROLLING                         }....................
-Fluake.scrollBar:         false
-Fluake.scrollTtyKeypress: true
-Fluake.scrollTtyOutput:   false
-Fluake.scrollWithBuffer:  true
+! ....................{ SCROLLING                         }....................
+URxvt*scrollBar:         false
+URxvt*scrollTtyKeypress: true
+URxvt*scrollTtyOutput:   false
+URxvt*scrollWithBuffer:  true
 
-# ....................{ SEARCHING                         }....................
+! ....................{ SEARCHING                         }....................
 !FIXME: This should already be the default: <Alt-s> to search backwards.
 ! Fluake.searchable-scrollback: M-s
 
-# ....................{ TYPING                            }....................
-Fluake.meta8: true
+! ....................{ TYPING                            }....................
+URxvt*meta8: true
 
 ! Convert URLs into clickable links running the following application on click.
-Fluake.urlLauncher: /usr/bin/firefox
+URxvt*urlLauncher: /usr/bin/firefox
 
-# ....................{ FONTS                             }....................
-Fluake.skipBuiltinGlyphs: false
+! ....................{ FONTS                             }....................
+URxvt*skipBuiltinGlyphs: false
 
 ! For compatibility with Powerline patches, prefer odd point sizes (e.g., 21).
-! Fluake.font: xft:Monospace:pixelsize=21
-! Fluake.font: xft:Monospace:pixelsize=25
-Fluake.font: xft:Monospace:pixelsize=31
+!URxvt*font: xft:Monospace:pixelsize=21
+URxvt*font: xft:Monospace:pixelsize=24
+!URxvt*font: xft:Monospace:pixelsize=31
 
-# ....................{ TINTING ~ pseudo-transparency     }....................
+! ....................{ TINTING ~ pseudo-transparency     }....................
 !Sadly, URxvt pseudo-transparency only tints to pure black. Since we require a
 !grey background for readability, disable such transparency.
-!Fluake.shading:       20
-!Fluake.tintColor:     white
-!Fluake.inheritPixmap: true
+!URxvt*shading:       20
+!URxvt*tintColor:     white
+!URxvt*inheritPixmap: true
 
-# ....................{ COLORS                            }....................
+! ....................{ COLORS                            }....................
 ! Color scheme, adapted from the official Lucius X.org resources at:
 ! https://github.com/jonathanfilip/lucius/blob/master/xresources/LuciusDark
 !
@@ -109,284 +104,90 @@ Fluake.font: xft:Monospace:pixelsize=31
 ! fabricating variant colors from scratch.
 
 ! Main colors. Equivalent RGB color components as base-10 integers:
-!Fluake.background:  48,48,48
-!Fluake.foreground:  215,215,215
-!Fluake.cursorColor: 135,175,215
-Fluake.background:  #303030
-Fluake.foreground:  #d7d7d7
-Fluake.cursorColor: #87afd7
+!URxvt*background:  48,48,48
+!URxvt*foreground:  215,215,215
+!URxvt*cursorColor: 135,175,215
+URxvt*background:  #303030
+URxvt*foreground:  #d7d7d7
+URxvt*cursorColor: #87afd7
 
 ! Black and dark grey.
-Fluake.color0:      #303030
-Fluake.color8:      #606060
+URxvt*color0:      #303030
+URxvt*color8:      #606060
 
 ! Light grey and white.
-Fluake.color7:      #d7d7d7
-Fluake.color15:     #f7f7f7
+URxvt*color7:      #d7d7d7
+URxvt*color15:     #f7f7f7
 
 ! Red and bright red.
-Fluake.color1:      #dd5f5f
-Fluake.color9:      #ff5f5f
+URxvt*color1:      #dd5f5f
+URxvt*color9:      #ff5f5f
 
 ! Green and bright green.
-Fluake.color2:      #afd787
-Fluake.color10:     #aff787
+URxvt*color2:      #afd787
+URxvt*color10:     #aff787
 
 ! Blue and bright blue.
-Fluake.color4:      #87d7df
-Fluake.color12:     #87d7ff
+URxvt*color4:      #87d7df
+URxvt*color12:     #87d7ff
 
 ! Yellow and bright yellow.
-Fluake.color3:      #d7d7af
-Fluake.color11:     #f7f7af
+URxvt*color3:      #d7d7af
+URxvt*color11:     #f7f7af
 
 ! Magenta and bright magenta.
-Fluake.color5:      #d7afd7
-Fluake.color13:     #f7aff7
+URxvt*color5:      #d7afd7
+URxvt*color13:     #f7aff7
 
 ! Cyan and bright cyan.
-Fluake.color6:      #87d7af
-Fluake.color14:     #87f7cf
-
-! ====================[ Other                             ]====================
-! Non-Fluake and -Folque resources. This is *ONLY* used when invoking "urxvt"
-! directly from the CLI (and hence is fairly useless). See above for details.
-
-! ....................{ DEPENDENCIES ~ perl               }....................
-! Load the following external Perl dependencies.
-URxvt.perl-lib:         /usr/lib/urxvt/perl/
-URxvt.perl-ext-common:  default,matcher
-
-! Activate substrings matched by Perl script "matcher" on the current terminal
-! with the following mouse button.
-URxvt.matcher.button:   1
-
-! ....................{ MAIN                              }....................
-URxvt.geometry:   80x32
-URxvt.borderLess: true
-URxvt.insecure:   true
-URxvt.saveLines:  4096
-
-! ....................{ SECONDARY SCREEN                  }....................
-! A secondary buffer for restoring the screen on quitting "less", "vim", et al.
-URxvt.secondaryScreen: true
-URxvt.secondaryScroll: true
-
-! ....................{ INPUT CURSOR                      }....................
-URxvt.cursorBlink: false
-
-! ....................{ MOUSE POINTER                     }....................
-URxvt.pointerColor:      white
-URxvt.pointerColor2:     black
-URxvt.pointerBlank:      true
-URxvt.pointerBlankDelay: 1
-URxvt.tripleclickwords:  true
-
-! ....................{ MOUSE WHEEL                       }....................
-URxvt.secondaryWheel: true
-
-! ....................{ SCROLLING                         }....................
-URxvt.scrollBar:         false
-
-! Automatically jump to the bottom of the current buffer on new input.
-URxvt.scrollTtyKeypress: true
-
-! Do *NOT* automatically jump to the bottom of the current buffer on new output.
-URxvt.scrollTtyOutput:   false
-
-! Synchronizing scrolling with the current buffer.
-URxvt.scrollWithBuffer:  true
-
-! ....................{ SEARCHING                         }....................
-!URxvt.searchable-scrollback:	M-/
-
-! ....................{ TYPING                            }....................
-URxvt.meta8: true
-
-! Convert URLs into clickable links running the following application on click.
-URxvt.urlLauncher:      /usr/bin/firefox
-
-! ....................{ FONTS                             }....................
-URxvt.skipBuiltinGlyphs: false
-!URxvt.font:              xft:Monospace:pixelsize=18
-URxvt.font:              xft:Monospace:pixelsize=20
-!URxvt.font:              xft:Monospace:pixelsize=24
-!URxvt.boldFont:         xft:Monospace:pixelsize=13:style=bold
-!URxvt.italicFont:       xft:Monospace:pixelsize=12
-!URxvt.boldItalicFont:   xft:Monospace:pixelsize=13
-
-! ....................{ TINTING                           }....................
-! "Tinting" is URxvt-speak for psuedo-transparency.
-!URxvt.shading:       20
-!URxvt.tintColor:     white
-!URxvt.inheritPixmap: true
-
-! ....................{ FADING                            }....................
-! "Fading" is URxvt-speak for dimming the window on loss of window focus.
-!Urxvt.fadeColor:	black
-!Urxvt.fading:		0
-!Urxvt.fading:		16
-
-! ....................{ COLORS                            }....................
-! Main colors.
-URxvt.background: black
-URxvt.foreground: white
-
-! Text colors. (Black, dark grey, light grey, and white, respectively.)
-URxvt.color0:  rgb:0/0/0
-URxvt.color8:  rgb:44/44/44
-URxvt.color7:  rgb:bb/bb/bb
-URxvt.color15: rgb:ff/ff/ff
-
-! Text colors. (Red and bright red, respectively.)
-URxvt.color1:  rgb:dd/44/44
-URxvt.color9:  rgb:ff/88/88
-
-! Text colors. (Green and bright green, respectively.)
-URxvt.color2:  rgb:bb/ff/bb
-URxvt.color10: rgb:88/ff/88
-
-! Text colors. (Blue and bright blue, respectively.)
-URxvt.color4:  rgb:88/88/dd
-URxvt.color12: rgb:aa/aa/ff
-
-! Text colors. (Yellow and bright yellow, respectively.)
-URxvt.color3:  rgb:dd/dd/00
-URxvt.color11: rgb:ff/ff/00
-
-! Text colors. (Magenta and bright magenta, respectively.)
-URxvt.color5:  rgb:dd/00/dd
-URxvt.color13: rgb:ff/00/ff
-
-! Text colors. (Cyan and bright cyan, respectively.)
-URxvt.color6:  rgb:00/dd/dd
-URxvt.color14: rgb:00/ff/ff
-
-
-! ====================[ Folque                            ]====================
-! Folque-specific resources. Sadly, X.org has no mechanism for inheriting,
-! sharing, or otherwise reusing resources. We explicitly repeat ourselves.
-
-! ....................{ MAIN                              }....................
-Folque.geometry:   80x3
-Folque.borderLess: true
-Folque.insecure:   true
-Folque.saveLines:  64  
-
-! ....................{ SECONDARY SCREEN                  }....................
-! A secondary buffer for restoring the screen on quitting "less", "vim", et al.
-Folque.secondaryScreen: false
-Folque.secondaryScroll: false
-
-! ....................{ INPUT CURSOR                      }....................
-Folque.cursorBlink: false
-
-! ....................{ MOUSE POINTER                     }....................
-Folque.pointerColor:      white
-Folque.pointerColor2:     black
-Folque.pointerBlank:      true
-Folque.pointerBlankDelay: 1
-Folque.tripleclickwords:  true
-
-! ....................{ SCROLLING                         }....................
-Folque.scrollBar:         false
-Folque.scrollTtyKeypress: true
-Folque.scrollTtyOutput:   false
-Folque.scrollWithBuffer:  true
-
-! ....................{ TYPING                            }....................
-Folque.meta8: true
-
-! ....................{ FONTS                             }....................
-!Folque.font:              xft:Monospace:pixelsize=16
-Folque.font:              xft:Monospace:pixelsize=20
-Folque.skipBuiltinGlyphs: false
-
-! ....................{ TINTING ~ pseudo-transparency     }....................
-Folque.shading:       24
-Folque.tintColor:     white
-Folque.inheritPixmap: true
-
-! ....................{ COLORS                            }....................
-! Main colors.
-Folque.background:	black
-Folque.foreground:	white
-
-! Text colors. (Black, dark grey, light grey, and white, respectively.)
-Folque.color0:	 rgb:0/0/0
-Folque.color8:  rgb:88/88/88
-Folque.color7:  rgb:bb/bb/bb
-Folque.color15: rgb:ff/ff/ff
-
-! Text colors. (Red and bright red, respectively.)
-Folque.color1:	 rgb:dd/44/44
-Folque.color9:	 rgb:ff/88/88
-
-! Text colors. (Green and bright green, respectively.)
-Folque.color2:	 rgb:bb/ff/bb
-Folque.color10: rgb:88/ff/88
-
-! Text colors. (Blue and bright blue, respectively.)
-Folque.color4:  rgb:88/88/dd
-Folque.color12: rgb:aa/aa/ff
-
-! Text colors. (Yellow and bright yellow, respectively.)
-Folque.color3:	 rgb:dd/dd/00
-Folque.color11: rgb:ff/ff/00
-
-! Text colors. (Magenta and bright magenta, respectively.)
-Folque.color5:  rgb:dd/00/dd
-Folque.color13: rgb:ff/00/ff
-
-! Text colors. (Cyan and bright cyan, respectively.)
-Folque.color6:  rgb:00/dd/dd
-Folque.color14: rgb:00/ff/ff
+URxvt*color6:      #87d7af
+URxvt*color14:     #87f7cf
 
 ! --------------------( WASTELANDS                         )--------------------
 ! * Consider switching to the "solarized" theme. It looks reasonably high-
 !   quality, and integrates perfectly with CLI ViM. See:
 !   https://github.com/solarized/xresources/blob/master/solarized
 
-!Fluake.font:              xft:Monospace:pixelsize=18
-!Fluake.font:              xft:Monospace:pixelsize=22
+!URxvt*font:              xft:Monospace:pixelsize=18
+!URxvt*font:              xft:Monospace:pixelsize=22
 !! Main colors.
-!Fluake.background:	black
-!Fluake.foreground:	white
+!URxvt*background:	black
+!URxvt*foreground:	white
 !
 !! Text colors. (Black, dark grey, light grey, and white, respectively.)
-!Fluake.color0:	rgb:0/0/0
-!Fluake.color8:	rgb:44/44/44
-!Fluake.color7:	rgb:bb/bb/bb
-!Fluake.color15:	rgb:ff/ff/ff
+!URxvt*color0:	rgb:0/0/0
+!URxvt*color8:	rgb:44/44/44
+!URxvt*color7:	rgb:bb/bb/bb
+!URxvt*color15:	rgb:ff/ff/ff
 !
 !! Text colors. (Red and bright red, respectively.)
-!Fluake.color1:    rgb:dd/44/44
-!Fluake.color9:    rgb:ff/88/88
+!URxvt*color1:    rgb:dd/44/44
+!URxvt*color9:    rgb:ff/88/88
 !
 !! Text colors. (Green and bright green, respectively.)
-!Fluake.color2:	rgb:bb/ff/bb
-!Fluake.color10:	rgb:88/ff/88
+!URxvt*color2:	rgb:bb/ff/bb
+!URxvt*color10:	rgb:88/ff/88
 !
 !! Text colors. (Blue and bright blue, respectively.)
-!Fluake.color4:	rgb:88/88/dd
-!Fluake.color12:	rgb:aa/aa/ff
+!URxvt*color4:	rgb:88/88/dd
+!URxvt*color12:	rgb:aa/aa/ff
 !
 !! Text colors. (Yellow and bright yellow, respectively.)
-!Fluake.color3:	rgb:dd/dd/00
-!Fluake.color11:	rgb:ff/ff/00
+!URxvt*color3:	rgb:dd/dd/00
+!URxvt*color11:	rgb:ff/ff/00
 !
 !! Text colors. (Magenta and bright magenta, respectively.)
-!Fluake.color5:	rgb:dd/00/dd
-!Fluake.color13:	rgb:ff/00/ff
+!URxvt*color5:	rgb:dd/00/dd
+!URxvt*color13:	rgb:ff/00/ff
 !
 !! Text colors. (Cyan and bright cyan, respectively.)
-!Fluake.color6:	rgb:00/dd/dd
-!Fluake.color14:	rgb:00/ff/ff
+!URxvt*color6:	rgb:00/dd/dd
+!URxvt*color14:	rgb:00/ff/ff
 
 ! ...................{ TYPING                               }...................
 ! Auto-contextualize raw URLs into clickable links that, when clicked, launch
 ! Firefox.
-!Fluake.perl-lib:         /usr/lib/urxvt/perl/
-!Fluake.perl-ext-common:  default,matcher
-!Fluake.matcher.button:   1
-!Fluake.urlLauncher:      /usr/bin/firefox
+!URxvt*perl-lib:         /usr/lib/urxvt/perl/
+!URxvt*perl-ext-common:  default,matcher
+!URxvt*matcher.button:   1
+!URxvt*urlLauncher:      /usr/bin/firefox

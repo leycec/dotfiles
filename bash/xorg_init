@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ====================[ xorg_restore                      ]====================
+# ====================[ xorg_init                         ]====================
 #
 # --------------------( LICENSE                           )--------------------
 # Copyright 2008-2018 by Cecil Curry.
@@ -47,29 +47,45 @@
 # Disable the audible bell and feedback.
 # command xkbset -bell -feedback
 
-# Enable "sticky keys" for all modifier keys, while also enabling "latchlock"
-# (i.e., pressing any modifier key twice in a row permanently locks that key
-# on) and disabling "twokey" (i.e., pressing any modifier key and another key
-# at the same time permanently disables "sticky keys"). Note that enabling
-# "sticky" automatically enables sticky keys for Apple- and Windows-specific
-# modifier keys as well. In sum, this includes: <Shift>, <Ctrl>, <Alt>, <Fn>,
-# and <Super> (e.g., <Apple>, <Windows>, <Tux>).
-#
-# Due to "xkbset" eccentricities, this command cannot be combined with the
-# above command disabling non-sticky-specific options.
-command xkbset sticky latchlock -twokey
+# If the external "xkbset" command exists...
+if [ -x /usr/bin/xkbset ]; then
+    # Enable "sticky keys" for all modifier keys, while also enabling
+    # "latchlock" (i.e., pressing any modifier key twice in a row permanently
+    # locks that key on) and disabling "twokey" (i.e., pressing any modifier
+    # key and another key at the same time permanently disables "sticky keys").
+    # Note that enabling "sticky" automatically enables sticky keys for Apple-
+    # and Windows-specific modifier keys as well. In sum, this includes:
+    # <Shift>, <Ctrl>, <Alt>, <Fn>, and <Super> (e.g., <Apple>, <Windows>,
+    # <Tux>).
+    #
+    # Due to "xkbset" eccentricities, this command cannot be combined with the
+    # above command disabling non-sticky-specific options.
+    command xkbset sticky latchlock -twokey
 
-# Disable expiration of "sticky keys" after the specified time in seconds. When
-# expiration is enabled, sticky keys are permanently disabled after that many
-# seconds, which is rather unhelpful.
-command xkbset exp 64 '=sticky' '=twokey' '=latchlock'
+    # Disable expiration of "sticky keys" after the specified time in seconds.
+    # When expiration is enabled, sticky keys are permanently disabled after
+    # that many seconds, which is rather unhelpful.
+    command xkbset exp 64 '=sticky' '=twokey' '=latchlock'
+# Else, the external "xkbset" command does *NOT* exists. In this case, display
+# a non-fatal warning.
+else
+    echo '"xkbset" not found.' >&2
+fi
 
-# Swap ":" with ";" and "`" with "~", the latter of which are more frequently
-# used for both coding and shell use. Interestingly, although these keys have
-# been logically remapped by our Kinesis keyboard, the X11-specific keycodes
-# for these keys remain the same: 47 and 49. This is verifiable via "xev".
-command xmodmap -e "keycode 47 = colon semicolon"
-# command xmodmap -e "keycode 49 = asciitilde grave"
+# If the external "xmodmap" command exists...
+if [ -x /usr/bin/xkbset ]; then
+    # Swap ":" with ";" and "`" with "~", the latter of which are more
+    # frequently used for both coding and shell use. Interestingly, although
+    # these keys have been logically remapped by our Kinesis keyboard, the
+    # X11-specific keycodes for these keys remain the same: 47 and 49. This is
+    # verifiable via "xev".
+    command xmodmap -e 'keycode 47 = colon semicolon'
+    # command xmodmap -e "keycode 49 = asciitilde grave"
+# Else, the external "xmodmap" command does *NOT* exists. In this case, display
+# a non-fatal warning.
+else
+    echo '"xmodmap" not found.' >&2
+fi
 
 # The "xset" command governs runtime X.org preferences. These preferences
 # cannot be specified via persisted configuration files, typically; they must

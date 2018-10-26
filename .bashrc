@@ -6,7 +6,7 @@
 # See "LICENSE" for further details.
 #
 # --------------------( SYNOPSIS                          )--------------------
-# User-specific "bash" startup script for non-login shells.
+# User-specific startup script for non-login bash shells.
 #
 # --------------------( SYNOPSIS                          )--------------------
 # This file is sourced by *ALL* interactive bash shells on startup, including
@@ -18,7 +18,7 @@
 # If the current shell is non-interactive, silently reduce to a noop to avoid
 # breaking low-level fragile shells (e.g., "scp", "rcp") intolerate of output.
 [[ $- == *i* ]] || return
-# Else, the current shell is interactive. In this case, configure us up.
+# Else, the current shell is interactive. To quoth the Mario: "Let's a-go!"
 
 # ....................{ GLOBALS ~ path                    }....................
 # Define the current ${PATH} (i.e., user-specific ":"-delimited list of the
@@ -87,7 +87,8 @@ else
     PS1='${DEBIAN_CHROOT:+($DEBIAN_CHROOT)}\u@\h:\w\$ '
 fi
 
-# If this is an xterm set the title to user@host:dir
+# If this is a standard X.org terminal, set the window title to resemble
+# "user@host:dir".
 case "$TERM" in
 xterm*|rxvt*)
     PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
