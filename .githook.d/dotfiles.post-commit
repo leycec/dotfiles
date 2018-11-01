@@ -21,7 +21,7 @@ BRANCH_NAME="$(git rev-parse --abbrev-ref HEAD)"
 # "github" branch and...
 if [ "${BRANCH_NAME}" = 'master' ] && git checkout github; then
     # Attempt to apply this commit to the "github" branch.
-    if git rebase master; then
+    if git rebase --preserve-merges master; then
         echo '[post-commit] Rebased "github" to "master".'
     # If this attempt fails, abort this attempt.
     else
@@ -32,7 +32,7 @@ if [ "${BRANCH_NAME}" = 'master' ] && git checkout github; then
     # Attempt to pull all remote changes. Assuming "~/.gitconfig" to contain a
     # "[pull]" section enabling "rebase = true", this implicitly rebases the
     # local to the remote "github" branch in preparation for subsequent pushing.
-    if git pull; then
+    if git pull --rebase=preserve; then
         echo '[post-commit] Pulled "github".'
     else
         echo '[post-commit] Pulling "github" failed.' 1>&2
