@@ -316,6 +316,21 @@ fi
 # Customize "less" to behave sanely when piped non-text input files.
 #[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
+# ....................{ CRYPTO                            }....................
+# If the "keychain" command exists:
+#
+# * If no "ssh-agent" daemon is currently running:
+#   * Spawn a long-running "ssh-agent" daemon.
+#   * Cache passphrases for typical user-specific private keys with this agent.
+# * Else, reuse the passphrases previously cached with this agent.
+if hash keychain >&/dev/null; then
+    eval "$( \
+        keychain \
+        --eval --ignore-missing --quick --quiet \
+        ~/.ssh/id_dsa ~/.ssh/id_ecdsa ~/.ssh/id_ed25519 ~/.ssh/id_rsa \
+    )"
+fi
+
 # ....................{ CLEANUP                           }....................
 # Prevent local variables declared above from polluting the environment.
 unset IS_BASH IS_COLOR IS_ZSH LS_OPTIONS PATH_MINICONDA3
