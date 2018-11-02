@@ -66,6 +66,20 @@ PATH_MINICONDA3="${HOME}/py/miniconda3/bin"
 # Export the current ${PATH} to the parent shell environment.
 export PATH
 
+# ....................{ TESTERS                           }....................
+# bool is_command(str command_name)
+#
+# Report success only if a command with the passed basename resides in the
+# current user's ${PATH}.
+:command.is() {
+    # While there exist a countably infinite number of alternative
+    # shell-specific implementations of this test, the current implementation
+    # appears to be the only one-liner applicable to both bash and zsh. Since
+    # "hash" is a builtin in both shells, this implementation is also
+    # guaranteed to be reasonably efficient.
+    hash "${1}" >&/dev/null
+}
+
 # ....................{ GLOBALS ~ color                   }....................
 # 1 if the current shell supports color and the empty string otherwise. 
 #
@@ -76,7 +90,7 @@ export PATH
 #     autoload colors zsh/terminfo
 #     [[ "$terminfo[colors]" -ge 8 ]] && IS_COLOR=YES
 IS_COLOR=
-hash tput >&/dev/null && tput setaf 1 >&/dev/null && IS_COLOR=1
+:command.is tput && tput setaf 1 >&/dev/null && IS_COLOR=1
 
 # ....................{ GLOBALS ~ history                 }....................
 # Absolute path of the history file to which the current shell appends
@@ -145,15 +159,19 @@ elif [[ -n "${IS_BASH}" ]]; then
     # shell word of a given command).
     shopt -s autocd
 
-    # Implicitly update the ${LINES} and ${COLUMNS} environment variables after
-    # each input command to reflect the current dimensions of the parent
-    # graphical terminal hosting this interactive shell.
+    # Implicitly update the ${LINES} and ${COLUMNS} variables after each input
+    # to reflect the current dimensions of the host terminal.
     shopt -s checkwinsize
 
     # Recursively expand the "**" pattern in pathname expansions to all files
     # and subdirectories of the given directory (defaulting to the current
     # directory).
     shopt -s globstar
+
+    # Disable completion when the input buffer is empty, preventing bash from
+    # unnecessarily expanding the entirety of the ${PATH} when the first input
+    # character is a tab.
+    shopt -s no_empty_cmd_completion
 
     # Emulate Vi[m] modality on reading keyboard input.
     set -o vi
@@ -182,8 +200,13 @@ if [[ -n "${IS_COLOR}" ]]; then
         PROMPT='%B%(!.%F{red}.%F{green})[%bzsh%B]%f %F{cyan}%~%f %F{blue}\$%f%b '
         # PROMPT='%B%(!.%F{red}%n%f .)%F{cyan}%~%f %F{blue}\$%f%b '
     elif [[ -n "${IS_BASH}" ]]; then
-        PS1='\[\033[01;32m\][\[\033[00;32m\]bash\[\033[01;32m\]]\[\033[00m\] \[\033[01;36m\]\w \[\033[01;34m\]\$\[\033[00m\] '
-        # PS1='\[\033[01;32m\]\u\[\033[00m\] \[\033[01;34m\]\w \[\033[01;36m\]\$\[\033[00m\] '
+        # If this is the superuser, define a superuser-specific prompt.
+        if [[ ${EUID} == 0 ]]; then
+            PS1='\[\033[01;31m\][\[\033[00;31m\]bash\[\033[01;31m\]]\[\033[00m\] \[\033[01;33m\]\w \[\033[01;35m\]\$\[\033[00m\] '
+        # Else, define a non-superuser-specific prompt.
+        else
+            PS1='\[\033[01;32m\][\[\033[00;32m\]bash\[\033[01;32m\]]\[\033[00m\] \[\033[01;36m\]\w \[\033[01;34m\]\$\[\033[00m\] '
+        fi
     fi
 else
     if [[ -n "${IS_ZSH}" ]]; then
@@ -196,6 +219,9 @@ fi
 # ....................{ COLOUR                            }....................
 # Enable colour support for all relevant "coreutils" commands.
 
+# String listing all options to be passed to "ls" aliases below.
+LS_OPTIONS='--all --group-directories-first --human-readable'
+
 # If this shell supports color...
 if [[ -n "${IS_COLOR}" ]]; then
     # Colour "ls" output and all derivatives thereof. Dismantled, this is:
@@ -205,15 +231,12 @@ if [[ -n "${IS_COLOR}" ]]; then
     #   enables colors if the current command outputs to an interactive shell.
     #   While *USUALLY* desirable, such detection fails for the common case of
     #   outputting to a pipe (e.g., "less") outputting to an interactive shell.
-    LS_OPTIONS='--all --color=always --group-directories-first --human-readable'
-    alias ls="ls ${LS_OPTIONS}"
-    alias dir="dir ${LS_OPTIONS}"
-    alias vdir="vdir ${LS_OPTIONS}"
+    LS_OPTIONS+=' --color=always'
 
     # Colour "grep" output and all derivatives thereof.
     alias grep='grep --color=always'
-    alias fgrep='fgrep --color=always'
     alias egrep='egrep --color=always'
+    alias fgrep='fgrep --color=always'
 
     # Configure "less" to preserve control characters and hence color codes.
     alias less='less --RAW-CONTROL-CHARS'
@@ -223,11 +246,15 @@ if [[ -n "${IS_COLOR}" ]]; then
 
     # If the "dircolors" command exists, evaluate the output of this command to
     # define the ${LS_COLORS} environment variable appropriately.
-    if hash dircolors >&/dev/null; then
+    if :command.is dircolors; then
         # If a user-specific ".dircolors" dotfile exists, replace the current
         # "dircolors" configuration (if any) with that specified by this file.
-        if [[ -r ~/.dircolors ]]; then
+        if [[ -f ~/.dircolors ]]; then
             eval "$(dircolors --sh ~/.dircolors)"
+        # Else if a system-wide "DIR_COLORS" file exists, replace the current
+        # "dircolors" configuration (if any) with that specified by this file.
+        elif [[ -f /etc/DIR_COLORS ]]; then
+            eval "$(dircolors --sh /etc/DIR_COLORS)"
         # Else, fallback to the default "dircolors" configuration.
         else
             eval "$(dircolors --sh)"
@@ -243,6 +270,11 @@ alias du='du --human-readable --total'
 alias mv='mv --interactive'
 alias mkdir='mkdir --parents'
 alias rm='rm --interactive'
+
+# Configure "ls"-like commands with options defined above.
+alias ls="ls ${LS_OPTIONS}"
+alias dir="dir ${LS_OPTIONS}"
+alias vdir="vdir ${LS_OPTIONS}"
 
 # ....................{ ALIASES ~ abbreviations           }....................
 # One-letter abbreviations for brave brevity.
@@ -264,11 +296,20 @@ alias rd='rmdir'
 # Three-letter abbreviations for tepid tumescence.
 alias lns='ln -s'
 
+# ....................{ ALIASES ~ abbreviations ~ apps    }....................
+# Browser-centric abbreviations.
+:command.is chromium && alias ch='chromium &!'
+:command.is firefox && alias ff='firefox &!'
+:command.is torbrowser-launcher && alias tb='torbrowser-launcher &!'
+
 # ....................{ ALIASES ~ distro : gentoo         }....................
 # Gentoo Linux-specific aliases.
+:command.is emerge  && alias em='emerge'
+:command.is eselect && alias es='eselect'
+:command.is repoman && alias re='repoman'
 
 # Configure "eix" to pipe ANSI color sequences to "less".
-hash eix >&/dev/null && alias eix='eix --force-color'
+:command.is eix && alias eix='eix --force-color'
 
 # ....................{ COMPLETIONS                       }....................
 if [[ -n "${IS_ZSH}"  ]]; then
@@ -289,8 +330,8 @@ elif [[ -n "${IS_BASH}" ]]; then
         fi
     fi
 
-    # If bash-specific integration for the Fuzzy File Finder (FZF) is available,
-    # locally enable this integration.
+    # If bash-specific integration for Fuzzy File Finder (FZF) is available,
+    # enable this integration.
     [[ -f ~/.fzf.bash ]] && source ~/.fzf.bash
 fi
 
