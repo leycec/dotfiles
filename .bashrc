@@ -21,10 +21,10 @@
 # by this script *MUST* run silently (i.e., output nothing).
 
 # ....................{ SHELLS                            }....................
-# 1 if the current shell is bash and the empty string otherwise. 
+# 1 if the current shell is bash and the empty string otherwise.
 IS_BASH=
 
-# 1 if the current shell is zsh and the empty string otherwise. 
+# 1 if the current shell is zsh and the empty string otherwise.
 IS_ZSH=
 
 # If the current shell is zsh, define the above booleans accordingly.
@@ -66,12 +66,16 @@ PATH_MINICONDA3="${HOME}/py/miniconda3/bin"
 # Export the current ${PATH} to the parent shell environment.
 export PATH
 
-# ....................{ TESTERS                           }....................
+# ....................{ FUNCTIONS                         }....................
+# For disambiguity (e.g., with external commands in the current ${PATH}), *ALL*
+# functions defined below are prefixed with punctuation supported by both bash
+# and zsh but otherwise prohibited for standard command basenames: "+".
+
 # bool is_command(str command_name)
 #
 # Report success only if a command with the passed basename resides in the
 # current user's ${PATH}.
-:command.is() {
++command.is() {
     # While there exist a countably infinite number of alternative
     # shell-specific implementations of this test, the current implementation
     # appears to be the only one-liner applicable to both bash and zsh. Since
@@ -80,17 +84,23 @@ export PATH
     hash "${1}" >&/dev/null
 }
 
-# ....................{ GLOBALS ~ color                   }....................
-# 1 if the current shell supports color and the empty string otherwise. 
+# ....................{ FUNCTIONS ~ startup               }....................
+# void +shell()
 #
-# If the "tput" command exists *AND* reports that the current shell supports
-# color, assume this to mean that this shell complies with Ecma-48
-# (i.e., ISO/IEC-6429). Note that, under zsh, similar logic is achievable by:
+# Source the current ".bashrc" script from the current shell, typically after
+# externally modifying this script.
+function +shell() {
+    source ~/.bashrc
+}
+
+
+# void +shell.edit()
 #
-#     autoload colors zsh/terminfo
-#     [[ "$terminfo[colors]" -ge 8 ]] && IS_COLOR=YES
-IS_COLOR=
-:command.is tput && tput setaf 1 >&/dev/null && IS_COLOR=1
+# Edit the current ".bashrc" script from the preferred editor.
+function +shell.edit() {
+    "${EDITOR}" ~/.bashrc
+    +shell
+}
 
 # ....................{ GLOBALS ~ history                 }....................
 # Absolute path of the history file to which the current shell appends
@@ -115,6 +125,24 @@ elif [[ -n "${IS_BASH}" ]]; then
     # Append rather than overwrite the history file.
     shopt -s histappend
 fi
+
+# ....................{ GLOBALS ~ other                   }....................
+# Basename of a command in the current ${PATH} acting as the preferred
+# command-line editor for this user.
+  if +command.is vim ; then export EDITOR=vim
+elif +command.is nano; then export EDITOR=nano
+fi
+
+# 1 if the current shell supports color and the empty string otherwise.
+#
+# If the "tput" command exists *AND* reports that the current shell supports
+# color, assume this to mean that this shell complies with Ecma-48
+# (i.e., ISO/IEC-6429). Note that, under zsh, similar logic is achievable by:
+#
+#     autoload colors zsh/terminfo
+#     [[ "$terminfo[colors]" -ge 8 ]] && IS_COLOR=YES
+IS_COLOR=
++command.is tput && tput setaf 1 >&/dev/null && IS_COLOR=1
 
 # ....................{ MODULES ~ zsh                     }....................
 # Lazily load zsh-specific modules (i.e., optional C-based extensions),
@@ -219,24 +247,18 @@ fi
 # ....................{ COLOUR                            }....................
 # Enable colour support for all relevant "coreutils" commands.
 
-# String listing all options to be passed to "ls" aliases below.
-LS_OPTIONS='--all --group-directories-first --human-readable'
+# GNU-style long option unconditionally enabling color support in most modern
+# CLI commands, defaulting to the empty string (i.e., ignoring color support).
+COLOR_OPTION=
 
 # If this shell supports color...
 if [[ -n "${IS_COLOR}" ]]; then
-    # Colour "ls" output and all derivatives thereof. Dismantled, this is:
-    #
-    # * "--color=always", unconditionally enabling colors regardless of
-    #   context. The comparable "--color=auto" option only conditionally
-    #   enables colors if the current command outputs to an interactive shell.
-    #   While *USUALLY* desirable, such detection fails for the common case of
-    #   outputting to a pipe (e.g., "less") outputting to an interactive shell.
-    LS_OPTIONS+=' --color=always'
-
-    # Colour "grep" output and all derivatives thereof.
-    alias grep='grep --color=always'
-    alias egrep='egrep --color=always'
-    alias fgrep='fgrep --color=always'
+    # Unconditionally enable color support regardless of context. A comparable
+    # "--color=auto" option only conditionally enables colors if the current
+    # command outputs to an interactive shell.  While *USUALLY* desirable, such
+    # detection fails for the common case of outputting to a pipe (e.g.,
+    # "less") outputting to an interactive shell.
+    COLOR_OPTION=' --color=always'
 
     # Configure "less" to preserve control characters and hence color codes.
     alias less='less --RAW-CONTROL-CHARS'
@@ -246,7 +268,7 @@ if [[ -n "${IS_COLOR}" ]]; then
 
     # If the "dircolors" command exists, evaluate the output of this command to
     # define the ${LS_COLORS} environment variable appropriately.
-    if :command.is dircolors; then
+    if +command.is dircolors; then
         # If a user-specific ".dircolors" dotfile exists, replace the current
         # "dircolors" configuration (if any) with that specified by this file.
         if [[ -f ~/.dircolors ]]; then
@@ -264,52 +286,122 @@ fi
 
 # ....................{ ALIASES ~ coreutils               }....................
 # Configure "coreutils"-based commands with sane defaults.
-alias cp='cp --interactive'
+alias chmod='chmod --changes --preserve-root'
+alias chown='chown --changes --preserve-root'
+alias cp='cp --interactive --verbose'
 alias df='df --human-readable'
 alias du='du --human-readable --total'
-alias mv='mv --interactive'
+alias mv='mv --interactive --verbose'
 alias mkdir='mkdir --parents'
-alias rm='rm --interactive'
+alias rm='rm --interactive --verbose'
+
+# Colour "grep"-like commands with options defined above.
+GREP_OPTIONS="--binary-files=without-match --extended-regexp --initial-tab --line-number${COLOR_OPTION}"
+alias grep="grep ${GREP_OPTIONS}"
+alias egrep="egrep ${GREP_OPTIONS}"
+alias fgrep="fgrep ${GREP_OPTIONS}"
 
 # Configure "ls"-like commands with options defined above.
+LS_OPTIONS="--all --group-directories-first --human-readable${COLOR_OPTION}"
 alias ls="ls ${LS_OPTIONS}"
 alias dir="dir ${LS_OPTIONS}"
 alias vdir="vdir ${LS_OPTIONS}"
 
 # ....................{ ALIASES ~ abbreviations           }....................
 # One-letter abbreviations for brave brevity.
+alias c='cp'
 alias d='date'
 alias f='fg'
-alias l='ls -CF'
+alias l='ls'
 alias m='mv'
-alias v='vim'
 
 # Two-letter abbreviations for great justice.
 alias cm='chmod'
 alias co='chown'
-alias gr='grep -R'
-alias ll='ls -alF'
+alias cr='cp -R'
+alias ll='l -l'
 alias lr='ll -R'
 alias md='mkdir'
 alias rd='rmdir'
 
 # Three-letter abbreviations for tepid tumescence.
+alias chm='chmod'
+alias cho='chown'
 alias lns='ln -s'
 
+# Four-letter abbreviations for fiery fenestration.
+alias chmr='chmod -R'
+alias chor='chown -R'
+
 # ....................{ ALIASES ~ abbreviations ~ apps    }....................
-# Browser-centric abbreviations.
-:command.is chromium && alias ch='chromium &!'
-:command.is firefox && alias ff='firefox &!'
-:command.is torbrowser-launcher && alias tb='torbrowser-launcher &!'
+# Abbreviations conditionally dependent upon external commands *NOT* guaranteed
+# to be installed by default (i.e., not bundled with "coreutils").
+
+# CLI-specific abbreviations.
++command.is fzf && alias fz='fzf'
++command.is htop && alias ht='htop'
++command.is ncdu && alias du='ncdu'
++command.is ncmpcpp && alias n='ncmpcpp'  # the command whose name nobody knows
++command.is vim && alias v='vim'
+
+# GUI-specific abbreviations, typically suffixed by "&!" to permit windowed
+# applications to be spawned in a detached manner from the current shell.
++command.is chromium && alias ch='chromium &!'
++command.is firefox && alias ff='firefox &!'
++command.is torbrowser-launcher && alias tb='torbrowser-launcher &!'
+
+# ....................{ ALIASES ~ abbreviations ~ grep    }....................
+# If an alternative "grep" command (e.g., ripgrep, Silver Surfer) is available,
+# alias "g" and "gr" to the most efficient such command; else, fallback to
+# vanilla "grep" for sanity. Anecdotally:
+#
+#     rg (ripgrep) >
+#     ag (Silver Surfer) >
+#     sift >
+#     ack >
+#     pt (Platinum Surfer) >
+#     grep
+#
+# See also:
+#
+# * http://xuchengpeng.com/2018/03/17/search-with-ripgrep, enumerating
+#   wallclock-sorted benchmarks for all commonly available "grep" alternatives.
+
+# For the basename of each alternative "grep" command (including "grep" itself)
+# in order of largely anecdotal efficiency...
+for GREP_COMMAND in rg ag sift ack pt grep; do
+    # If this command exists...
+    if +command.is "${GREP_COMMAND}"; then
+        # Alias "g" to this command.
+        alias g="${GREP_COMMAND}"
+
+        # If this command is ripgrep...
+        if [[ "${GREP_COMMAND}" == 'rg' ]]; then
+            # Configure ripgrep.
+            alias ripgrep="ripgrep${COLOR_OPTION}"
+
+            # Alias "gr" to the same command as well. By design, ripgrep
+            # *ALWAYS* operates recursively.
+            alias gr='g'
+        # Else, alias "gr" to this command passed the standard "-r" option
+        # enabling recursion. This assumption may not always hold, of course.
+        else
+            alias gr='g -r'
+        fi
+
+        # Cease iteration.
+        break
+    fi
+done
 
 # ....................{ ALIASES ~ distro : gentoo         }....................
 # Gentoo Linux-specific aliases.
-:command.is emerge  && alias em='emerge'
-:command.is eselect && alias es='eselect'
-:command.is repoman && alias re='repoman'
++command.is emerge  && alias em='emerge'
++command.is eselect && alias es='eselect'
++command.is repoman && alias re='repoman'
 
 # Configure "eix" to pipe ANSI color sequences to "less".
-:command.is eix && alias eix='eix --force-color'
++command.is eix && alias eix='eix --force-color'
 
 # ....................{ COMPLETIONS                       }....................
 if [[ -n "${IS_ZSH}"  ]]; then
@@ -374,4 +466,11 @@ fi
 
 # ....................{ CLEANUP                           }....................
 # Prevent local variables declared above from polluting the environment.
-unset IS_BASH IS_COLOR IS_ZSH LS_OPTIONS PATH_MINICONDA3
+unset \
+    GREP_COMMAND \
+    GREP_OPTIONS \
+    IS_BASH \
+    IS_COLOR \
+    IS_ZSH \
+    LS_OPTIONS \
+    PATH_MINICONDA3
