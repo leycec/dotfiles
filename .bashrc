@@ -15,10 +15,28 @@
 # Symlink this script to "~/.zshrc" or source this script from "~/.zshrc".
 #
 # --------------------( CAVEATS                           )--------------------
-# This file is sourced by *ALL* interactive bash shells on startup, including
+# This script is sourced by *ALL* interactive bash shells on startup, including
 # numerous low-level fragile shells (e.g., "scp", "rcp") intolerate of output.
 # To avoid spurious issues, both this script and all commands transitively run
 # by this script *MUST* run silently (i.e., output nothing).
+#
+# --------------------( DEPENDENCIES                      )--------------------
+# This script has no mandatory dependencies but numerous optional dependencies
+# recommended for optimal usability, including:
+#
+# * "zsh", the One True Shell.
+# * "vim", the One True IDE.
+# * "fzf", the Fuzzy File Finder (FZF).
+# * "htop", a highly interactive "top" alternative.
+# * "mpd", the Music Player Daemon (MPD).
+# * "ncdu", the NCurses Disk Usage (NCDU) "du" alternative.
+# * "ncmpcpp", a popular CLI-based MPD client.
+# * "ripgrep", a strongly optimized "grep" alternative.
+#
+# These dependencies are installable as follows:
+#
+# * Under Gentoo Linux:
+#    sudo emerge --ask htop keychain mpd ncdu ncmpcpp ripgrep vim zsh
 
 # ....................{ SHELLS                            }....................
 # 1 if the current shell is bash and the empty string otherwise.
@@ -50,28 +68,12 @@ elif [[ -n "${IS_BASH}" ]]; then [[ $- == *i*      ]] || return
 fi
 # Else, the current shell is interactive. To quoth the Mario: "Let's a-go!"
 
-# ....................{ GLOBALS ~ path                    }....................
-# Define the current ${PATH} (i.e., user-specific ":"-delimited list of the
-# absolute dirnames of all directories to locate command basenames relative to)
-# *BEFORE* performing any subsequent logic possibly expecting this ${PATH}.
-PATH="${PATH}:${HOME}/bash:${HOME}/perl:${HOME}/zsh"
-
-# If Miniconda3 is available, prepend the absolute dirname of the Miniconda3
-# subdirectory defining external commands to the current ${PATH} *AFTER*
-# defining the ${PATH}, ensuring that system-wide commands (e.g., "python3")
-# take precedence over Miniconda3-specific commands of the same basename.
-PATH_MINICONDA3="${HOME}/py/miniconda3/bin"
-[[ -d "${PATH_MINICONDA3}" ]] && PATH="${PATH_MINICONDA3}:${PATH}"
-
-# Export the current ${PATH} to the parent shell environment.
-export PATH
-
 # ....................{ FUNCTIONS                         }....................
 # For disambiguity (e.g., with external commands in the current ${PATH}), *ALL*
 # functions defined below are prefixed with punctuation supported by both bash
 # and zsh but otherwise prohibited for standard command basenames: "+".
 
-# bool is_command(str command_name)
+# bool +command.is(str command_name)
 #
 # Report success only if a command with the passed basename resides in the
 # current user's ${PATH}.
@@ -83,6 +85,65 @@ export PATH
     # guaranteed to be reasonably efficient.
     hash "${1}" >&/dev/null
 }
+
+
+# void +path.append(str dirname, ...)
+#
+# Append each passed existing directory to the current user's ${PATH} in a
+# safe manner silently ignoring:
+#
+# * Relative directories (i.e., *NOT* prefixed by the directory separator).
+# * Duplicate directories (i.e., already listed in the current ${PATH}).
+# * Nonextant directories.
++path.append() {
+    # For each passed dirname...
+    local dirname
+    for   dirname; do
+        # Strip the trailing directory separator if any from this dirname,
+        # reducing this dirname to the canonical form expected by the
+        # test for uniqueness performed below.
+        dirname="${dirname%/}"
+
+        # If this dirname is either relative, duplicate, or nonextant, then
+        # silently ignore this dirname and continue to the next. Note that the
+        # extancy test is the least performant test and hence deferred.
+        [[ "${dirname:0:1}" == '/' &&
+           ":${PATH}:" != *":${dirname}:"* &&
+           -d "${dirname}" ]] || continue
+
+        # Else, this is an existing absolute unique dirname. In this case,
+        # append this dirname to the current ${PATH}.
+        PATH="${PATH}:${dirname}"
+    done
+
+    # Strip an erroneously leading delimiter from the current ${PATH} if any,
+    # a common edge case when the initial ${PATH} is the empty string.
+    PATH="${PATH#:}"
+
+    # Export the current ${PATH} to subprocesses. Although system-wide scripts
+    # already export the ${PATH} by default on most systems, "Bother free is
+    # the way to be."
+    export PATH
+}
+
+# ....................{ GLOBALS ~ path                    }....................
+# echo "PATH=${PATH} (before)"
+
+# Define the current ${PATH} (i.e., user-specific ":"-delimited list of the
+# absolute dirnames of all directories to locate command basenames relative to)
+# *BEFORE* performing any subsequent logic possibly expecting this ${PATH}.
+# PATH="${PATH}:${HOME}/bash:${HOME}/perl:${HOME}/zsh"
+# PATH="${HOME}/bash:${HOME}/perl:${HOME}/zsh"
++path.append ~/bash ~/perl ~/zsh
+# +path.append "${HOME}/bash"
+
+# If Miniconda3 is available, prepend the absolute dirname of the Miniconda3
+# subdirectory defining external commands to the current ${PATH} *AFTER*
+# defining the ${PATH}, ensuring that system-wide commands (e.g., "python3")
+# take precedence over Miniconda3-specific commands of the same basename.
++path.append ~/py/miniconda3/bin
+
+# echo "PATH=${PATH} (after)"
 
 # ....................{ FUNCTIONS ~ startup               }....................
 # void +shell()
@@ -129,7 +190,15 @@ fi
 # ....................{ GLOBALS ~ other                   }....................
 # Basename of a command in the current ${PATH} acting as the preferred
 # command-line editor for this user.
-  if +command.is vim ; then export EDITOR=vim
+#
+# If "vim" is available, prefer "vim".
+if +command.is vim; then
+    export EDITOR=vim
+
+    # Alias "vim"-based commands to sane abbreviations.
+    +command.is vim && alias v='vim'
+    +command.is vimdiff && alias vd='vimdiff'
+# Else if "nano" is available, fallback to "nano" in silent desperation.
 elif +command.is nano; then export EDITOR=nano
 fi
 
@@ -307,6 +376,10 @@ alias ls="ls ${LS_OPTIONS}"
 alias dir="dir ${LS_OPTIONS}"
 alias vdir="vdir ${LS_OPTIONS}"
 
+# ....................{ ALIASES ~ linux                   }....................
+# Configure Linux-specific commands with sane defaults.
++command.is lsblk && alias lsblk='lsblk --fs'
+
 # ....................{ ALIASES ~ abbreviations           }....................
 # One-letter abbreviations for brave brevity.
 alias c='cp'
@@ -322,16 +395,16 @@ alias cr='cp -R'
 alias ll='l -l'
 alias lr='ll -R'
 alias md='mkdir'
+alias mo='mount'
 alias rd='rmdir'
 
 # Three-letter abbreviations for tepid tumescence.
-alias chm='chmod'
-alias cho='chown'
+alias cmr='chmod -R'
+alias cor='chown -R'
 alias lns='ln -s'
+alias umo='umount'
 
 # Four-letter abbreviations for fiery fenestration.
-alias chmr='chmod -R'
-alias chor='chown -R'
 
 # ....................{ ALIASES ~ abbreviations ~ apps    }....................
 # Abbreviations conditionally dependent upon external commands *NOT* guaranteed
@@ -342,7 +415,6 @@ alias chor='chown -R'
 +command.is htop && alias ht='htop'
 +command.is ncdu && alias du='ncdu'
 +command.is ncmpcpp && alias n='ncmpcpp'  # the command whose name nobody knows
-+command.is vim && alias v='vim'
 
 # GUI-specific abbreviations, typically suffixed by "&!" to permit windowed
 # applications to be spawned in a detached manner from the current shell.
