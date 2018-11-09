@@ -154,17 +154,27 @@
 #
 #def_key "up"
 #  scroll_up
+def_key "k"
+  scroll_up
 #
 #def_key "shift-up"
 #  select_item
 #  scroll_up
+def_key "shift-k"
+  select_item
+  scroll_up
 #
 #def_key "down"
 #  scroll_down
+def_key "j"
+  scroll_down
 #
 #def_key "shift-down"
 #  select_item
 #  scroll_down
+def_key "shift-down"
+ select_item
+ scroll_down
 #
 #def_key "["
 #  scroll_up_album
@@ -180,15 +190,23 @@
 #
 #def_key "page_up"
 #  page_up
+def_key "t"
+  page_up
 #
 #def_key "page_down"
 #  page_down
+def_key "h"
+  page_down
 #
 #def_key "home"
 #  move_home
+def_key "x"
+  move_home
 #
 #def_key "end"
 #  move_end
+def_key "d"
+  move_end
 #
 #def_key "insert"
 #  select_item
@@ -222,6 +240,14 @@
 #
 #def_key "delete"
 #  delete_stored_playlist
+def_key "backspace"
+ delete_playlist_items
+
+def_key "backspace"
+ delete_browser_items
+
+def_key "backspace"
+ delete_stored_playlist
 #
 #def_key "right"
 #  next_column
@@ -471,12 +497,22 @@
 #
 #def_key "m"
 #  move_selected_items_up
+def_key "K"
+  move_sort_order_up
+
+def_key "K"
+  move_selected_items_up
 #
 #def_key "n"
 #  move_sort_order_down
 #
 #def_key "n"
 #  move_selected_items_down
+def_key "J"
+  move_sort_order_down
+
+def_key "J"
+  move_selected_items_down
 #
 #def_key "M"
 #  move_selected_items_to

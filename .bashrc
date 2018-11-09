@@ -60,6 +60,10 @@ else
     return 1
 fi
 
+# Export to subprocesses the booleans defined above and referenced internally
+# by functions defined below.
+export IS_BASH IS_ZSH
+
 # ....................{ INTERACTIVE                       }....................
 # If the current shell is non-interactive, silently reduce to a noop to avoid
 # breaking low-level fragile shells (e.g., "scp", "rcp") intolerate of output.
@@ -126,6 +130,78 @@ fi
     export PATH
 }
 
+# ....................{ FUNCTIONS ~ dir                   }....................
+# str +dir.list_subdirs_mtime(str dirname)
+#
+# Recursively list all transitive subdirectories of the directory with the
+# passed absolute or relative dirname, sorted in descending order of
+# modification time (i.e., mtime).
++dir.list_subdirs_mtime() {
+    (( # == 1 )) || {
+        echo 'Expected one dirname.' 1>&2
+        return 1
+    }
+
+    # Dismantled, this is:
+    #
+    # * "-type d", listing only subdirectories.
+    # * "-printf", listing one subdirectory per line formatted as:
+    #   * "%T@", the modification time for that subdirectory in seconds since
+    #     the Unix epoch.
+    #   * "%P", the relative dirname of this subdirectory (omitting the
+    #     prefixing passed parent dirname of that dirname for readability).
+    # * "sort --reverse", sorting subdirectories in descending order of
+    #   modification time (i.e., from newest to oldest).
+    # * "cut --complement --fields=1", removing the modification time
+    #   prefixing each subdirectory for readability.
+    command find "${1}" -type d -printf "%T@\t%P\n" |
+        command sort --reverse |
+        command cut --complement --fields=1 |
+        command less
+}
+
+
+# str +dir.list_subdirs_mtime_depth(str dirname, int subdir_depth)
+#
+# Non-recursively list all subdirectories of the directory with the passed
+# absolute or relative dirname residing at the passed 1-based depth of the
+# directory tree rooted at that parent directory, sorted in descending order of
+# modification time (i.e., mtime).
++dir.list_subdirs_mtime_depth() {
+    (( # == 2 )) || {
+        echo 'Expected one dirname and one depth.' 1>&2
+        return 1
+    }
+
+    # See the +dir.list_subdirs_mtime() function.
+    command find "${1}" \
+            -mindepth "${2}" \
+            -maxdepth "${2}" \
+            -type d \
+            -printf "%T@\t%P\n" |
+        command sort --reverse |
+        command cut --complement --fields=1 |
+        command less
+}
+
+# ....................{ FUNCTIONS ~ rc                    }....................
+# void +rc()
+#
+# Source the current ".bashrc" script from the current shell, typically after
+# externally modifying this script.
+function +rc() {
+    source ~/.bashrc
+}
+
+
+# void +rc.edit()
+#
+# Edit the current ".bashrc" script from the preferred editor.
+function +rc.edit() {
+    "${EDITOR}" ~/.bashrc
+    +rc
+}
+
 # ....................{ GLOBALS ~ path                    }....................
 # echo "PATH=${PATH} (before)"
 
@@ -144,24 +220,6 @@ fi
 +path.append ~/py/miniconda3/bin
 
 # echo "PATH=${PATH} (after)"
-
-# ....................{ FUNCTIONS ~ startup               }....................
-# void +shell()
-#
-# Source the current ".bashrc" script from the current shell, typically after
-# externally modifying this script.
-function +shell() {
-    source ~/.bashrc
-}
-
-
-# void +shell.edit()
-#
-# Edit the current ".bashrc" script from the preferred editor.
-function +shell.edit() {
-    "${EDITOR}" ~/.bashrc
-    +shell
-}
 
 # ....................{ GLOBALS ~ history                 }....................
 # Absolute path of the history file to which the current shell appends
@@ -357,10 +415,10 @@ fi
 # Configure "coreutils"-based commands with sane defaults.
 alias chmod='chmod --changes --preserve-root'
 alias chown='chown --changes --preserve-root'
-alias cp='cp --interactive --verbose'
+alias cp='cp --interactive --preserve --verbose'
 alias df='df --human-readable'
 alias du='du --human-readable --total'
-alias mv='mv --interactive --verbose'
+alias mv='mv --interactive --preserve --verbose'
 alias mkdir='mkdir --parents'
 alias rm='rm --interactive --verbose'
 
@@ -392,8 +450,9 @@ alias m='mv'
 alias cm='chmod'
 alias co='chown'
 alias cr='cp -R'
+alias le='less'
 alias ll='l -l'
-alias lr='ll -R'
+alias lr='ll -R | less'
 alias md='mkdir'
 alias mo='mount'
 alias rd='rmdir'
@@ -404,7 +463,10 @@ alias cor='chown -R'
 alias lns='ln -s'
 alias umo='umount'
 
-# Four-letter abbreviations for fiery fenestration.
+# Four-letter abbreviations for fiery fenestration. Specifically:
+#
+# * "lram", recursively listing all metal albums sorted by mtime.
+alias lram='+dir.list_subdirs_mtime_depth ~/pub/audio/metal 3'
 
 # ....................{ ALIASES ~ abbreviations ~ apps    }....................
 # Abbreviations conditionally dependent upon external commands *NOT* guaranteed
@@ -416,10 +478,16 @@ alias umo='umount'
 +command.is ncdu && alias du='ncdu'
 +command.is ncmpcpp && alias n='ncmpcpp'  # the command whose name nobody knows
 
+if +command.is vcsh; then
+    alias vc='vcsh'
+    alias vce='vcsh enter'
+fi
+
 # GUI-specific abbreviations, typically suffixed by "&!" to permit windowed
 # applications to be spawned in a detached manner from the current shell.
 +command.is chromium && alias ch='chromium &!'
 +command.is firefox && alias ff='firefox &!'
++command.is geeqie && alias gq='geeqie &!'
 +command.is torbrowser-launcher && alias tb='torbrowser-launcher &!'
 
 # ....................{ ALIASES ~ abbreviations ~ grep    }....................
@@ -541,8 +609,6 @@ fi
 unset \
     GREP_COMMAND \
     GREP_OPTIONS \
-    IS_BASH \
     IS_COLOR \
-    IS_ZSH \
     LS_OPTIONS \
     PATH_MINICONDA3
