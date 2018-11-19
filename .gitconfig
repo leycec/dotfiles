@@ -43,6 +43,7 @@
     c = commit
     ca = commit --amend
     ci = commit
+    cl = clone
     co = checkout
     cp = cherry-pick
     d = diff

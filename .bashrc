@@ -418,7 +418,7 @@ alias chown='chown --changes --preserve-root'
 alias cp='cp --interactive --preserve --verbose'
 alias df='df --human-readable'
 alias du='du --human-readable --total'
-alias mv='mv --interactive --preserve --verbose'
+alias mv='mv --interactive --verbose'
 alias mkdir='mkdir --parents'
 alias rm='rm --interactive --verbose'
 
@@ -439,17 +439,22 @@ alias vdir="vdir ${LS_OPTIONS}"
 +command.is lsblk && alias lsblk='lsblk --fs'
 
 # ....................{ ALIASES ~ abbreviations           }....................
-# One-letter abbreviations for brave brevity.
+# One-letter abbreviations for brave brevity. Specifically:
+#
+# * "w", printing the definition of all external commands, shell aliases, and
+#   shell functions with the passed names.
 alias c='cp'
 alias d='date'
 alias f='fg'
 alias l='ls'
 alias m='mv'
+alias w='whence -acS -x 4'
 
 # Two-letter abbreviations for great justice.
 alias cm='chmod'
 alias co='chown'
 alias cr='cp -R'
+alias gi='git'
 alias le='less'
 alias ll='l -l'
 alias lr='ll -R | less'
@@ -551,6 +556,9 @@ if [[ -n "${IS_ZSH}"  ]]; then
     # Initialize the completion subsystem.
     autoload -Uz compinit
     compinit
+
+    # If zsh support for Fuzzy File Finder (FZF) is available, do so.
+    [[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
 elif [[ -n "${IS_BASH}" ]]; then
     # Enable programmable completion if *NOT* in strict POSIX-compatible mode
     # and one or more of the following Bash-specific completion files exist.
@@ -562,8 +570,7 @@ elif [[ -n "${IS_BASH}" ]]; then
         fi
     fi
 
-    # If bash-specific integration for Fuzzy File Finder (FZF) is available,
-    # enable this integration.
+    # If bash support for Fuzzy File Finder (FZF) is available, do so.
     [[ -f ~/.fzf.bash ]] && source ~/.fzf.bash
 fi
 

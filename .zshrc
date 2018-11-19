@@ -17,3 +17,5 @@
 # ....................{ MAIN                              }....................
 # Defer to the shell-agnostic startup script for non-login bash and zsh shells.
 source ~/.bashrc
+
+[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
