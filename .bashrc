@@ -60,10 +60,6 @@ else
     return 1
 fi
 
-# Export to subprocesses the booleans defined above and referenced internally
-# by functions defined below.
-export IS_BASH IS_ZSH
-
 # ....................{ INTERACTIVE                       }....................
 # If the current shell is non-interactive, silently reduce to a noop to avoid
 # breaking low-level fragile shells (e.g., "scp", "rcp") intolerate of output.
@@ -332,7 +328,7 @@ elif [[ -n "${IS_BASH}" ]]; then
     set -o vi
 fi
 
-# ....................{ PROMPT                            }....................
+# ....................{ VARIABLES ~ prompt                }....................
 # If this shell supports color, define a colorful shell prompt.
 if [[ -n "${IS_COLOR}" ]]; then
     if [[ -n "${IS_ZSH}" ]]; then
@@ -368,6 +364,29 @@ else
         PROMPT='%n %~$ '
     elif [[ -n "${IS_BASH}" ]]; then
         PS1='\u \w\$ '
+    fi
+fi
+
+# ....................{ VARIABLES ~ linux                 }....................
+# If the ${XDG_RUNTIME_DIR} variable mandated by the XDG Base Directory
+# Specification and hence assumed to exist by applications remains undefined...
+if [[ -z "${XDG_RUNTIME_DIR}" ]]; then
+    # Define this variable to a user-specific temporary directory.
+    #
+    # If the systemd-specific "/run/user" or "/var/run/user" directories
+    # exist, defer to the first of these such directories; else, fallback to an
+    # init-agnostic user-specific temporary directory guaranteed to be writable
+    # under most sane permissions schemes.
+    if   [[ -d /run/user/     ]]; then XDG_RUNTIME_DIR="/run/user/$UID"
+    elif [[ -d /var/run/user/ ]]; then XDG_RUNTIME_DIR="/var/run/user/$UID"
+    else                               XDG_RUNTIME_DIR="/tmp/${UID}-runtime-dir"
+    fi
+
+    # If this directory does *NOT* exist, create this directory with
+    # permissions isolating access to the current user for safety.
+    if [[ ! -d "${XDG_RUNTIME_DIR}" ]]; then
+        mkdir "${XDG_RUNTIME_DIR}"
+        chmod 0700 "${XDG_RUNTIME_DIR}"
     fi
 fi
 
@@ -439,16 +458,12 @@ alias vdir="vdir ${LS_OPTIONS}"
 +command.is lsblk && alias lsblk='lsblk --fs'
 
 # ....................{ ALIASES ~ abbreviations           }....................
-# One-letter abbreviations for brave brevity. Specifically:
-#
-# * "w", printing the definition of all external commands, shell aliases, and
-#   shell functions with the passed names.
+# One-letter abbreviations for brave brevity.
 alias c='cp'
 alias d='date'
 alias f='fg'
 alias l='ls'
 alias m='mv'
-alias w='whence -acS -x 4'
 
 # Two-letter abbreviations for great justice.
 alias cm='chmod'
@@ -472,6 +487,15 @@ alias umo='umount'
 #
 # * "lram", recursively listing all metal albums sorted by mtime.
 alias lram='+dir.list_subdirs_mtime_depth ~/pub/audio/metal 3'
+
+# ....................{ ALIASES ~ abbreviations ~ shell   }....................
+# Abbreviations conditionally dependent upon the current shell.
+
+# Alias "wh" to list the absolute filenames and/or definitions of all external
+# commands, shell aliases, and shell functions with the passed names.
+if   [[ -n "${IS_ZSH}"  ]]; then alias wh='whence -acS -x 4'
+elif [[ -n "${IS_BASH}" ]]; then alias wh='type -a'
+fi
 
 # ....................{ ALIASES ~ abbreviations ~ apps    }....................
 # Abbreviations conditionally dependent upon external commands *NOT* guaranteed
@@ -612,7 +636,11 @@ if hash keychain >&/dev/null; then
 fi
 
 # ....................{ CLEANUP                           }....................
-# Prevent local variables declared above from polluting the environment.
+# Export all variables defined above and referenced internally by aliases
+# and/or functions defined below to subprocesses.
+export IS_BASH IS_ZSH XDG_RUNTIME_DIR
+
+# Prevent all remaining variables defined above from polluting the environment.
 unset \
     GREP_COMMAND \
     GREP_OPTIONS \
