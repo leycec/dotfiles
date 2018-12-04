@@ -18,4 +18,8 @@
 # Defer to the shell-agnostic startup script for non-login bash and zsh shells.
 source ~/.bashrc
 
-[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+# ....................{ KLUDGE                            }....................
+# Prevent the Fuzzy File Finder (FZF) installation script from continually
+# attempting to reappend this line to this file by shifting this line from the
+# preferable ".bashrc" script into this script. *shrug*
+[[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh

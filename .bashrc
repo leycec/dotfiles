@@ -77,7 +77,12 @@ fi
 #
 # Report success only if a command with the passed basename resides in the
 # current user's ${PATH}.
-+command.is() {
+function +command.is() {
+    (( $# == 1 )) || {
+        echo 'Expected one command basename.' 1>&2
+        return 1
+    }
+
     # While there exist a countably infinite number of alternative
     # shell-specific implementations of this test, the current implementation
     # appears to be the only one-liner applicable to both bash and zsh. Since
@@ -95,7 +100,12 @@ fi
 # * Relative directories (i.e., *NOT* prefixed by the directory separator).
 # * Duplicate directories (i.e., already listed in the current ${PATH}).
 # * Nonextant directories.
-+path.append() {
+function +path.append() {
+    (( $# >= 1 )) || {
+        echo 'Expected one or more dirnames.' 1>&2
+        return 1
+    }
+
     # For each passed dirname...
     local dirname
     for   dirname; do
@@ -132,8 +142,8 @@ fi
 # Recursively list all transitive subdirectories of the directory with the
 # passed absolute or relative dirname, sorted in descending order of
 # modification time (i.e., mtime).
-+dir.list_subdirs_mtime() {
-    (( # == 1 )) || {
+function +dir.list_subdirs_mtime() {
+    (( $# == 1 )) || {
         echo 'Expected one dirname.' 1>&2
         return 1
     }
@@ -163,8 +173,8 @@ fi
 # absolute or relative dirname residing at the passed 1-based depth of the
 # directory tree rooted at that parent directory, sorted in descending order of
 # modification time (i.e., mtime).
-+dir.list_subdirs_mtime_depth() {
-    (( # == 2 )) || {
+function +dir.list_subdirs_mtime_depth() {
+    (( $# == 2 )) || {
         echo 'Expected one dirname and one depth.' 1>&2
         return 1
     }
@@ -183,17 +193,30 @@ fi
 # ....................{ FUNCTIONS ~ rc                    }....................
 # void +rc()
 #
-# Source the current ".bashrc" script from the current shell, typically after
-# externally modifying this script.
+# Resource the current bash or zsh startup script from the current shell (e.g.,
+# after editing this script).
 function +rc() {
+    (( $# >= 0 )) || {
+        echo 'Expected no arguments.' 1>&2
+        return 1
+    }
+
+    #FIXME: Generalize to source the current script without hardcoding. Under
+    #Bash, the absolute filename of this script is "${BASH_SOURCE[0]}".
     source ~/.bashrc
 }
 
 
 # void +rc.edit()
 #
-# Edit the current ".bashrc" script from the preferred editor.
+# Edit the current bash or zsh startup script with this user's preferred editor
+# and resource this script after doing so from the current shell.
 function +rc.edit() {
+    (( $# >= 0 )) || {
+        echo 'Expected no arguments.' 1>&2
+        return 1
+    }
+
     "${EDITOR}" ~/.bashrc
     +rc
 }
@@ -465,7 +488,12 @@ alias f='fg'
 alias l='ls'
 alias m='mv'
 
+# Note that print() is a builtin under zsh but *NOT* bash, but that an alias
+# defined below simply aliases "print" to "echo" under bash.
+alias p='print'
+
 # Two-letter abbreviations for great justice.
+alias ca='cat'
 alias cm='chmod'
 alias co='chown'
 alias cr='cp -R'
@@ -491,10 +519,17 @@ alias lram='+dir.list_subdirs_mtime_depth ~/pub/audio/metal 3'
 # ....................{ ALIASES ~ abbreviations ~ shell   }....................
 # Abbreviations conditionally dependent upon the current shell.
 
-# Alias "wh" to list the absolute filenames and/or definitions of all external
-# commands, shell aliases, and shell functions with the passed names.
-if   [[ -n "${IS_ZSH}"  ]]; then alias wh='whence -acS -x 4'
-elif [[ -n "${IS_BASH}" ]]; then alias wh='type -a'
+# Alias:
+#
+# * "wh" to list the absolute filenames and/or definitions of all external
+#   commands, shell aliases, and shell functions with the passed names.
+# * "print" to "echo" under bash. Under zsh, the two are effectively synonyms
+#   of one another for most intents and purposes.
+if   [[ -n "${IS_ZSH}"  ]]; then
+    alias wh='whence -acS -x 4'
+elif [[ -n "${IS_BASH}" ]]; then
+    alias wh='type -a'
+    alias print='echo'
 fi
 
 # ....................{ ALIASES ~ abbreviations ~ apps    }....................
@@ -514,7 +549,10 @@ fi
 
 # GUI-specific abbreviations, typically suffixed by "&!" to permit windowed
 # applications to be spawned in a detached manner from the current shell.
++command.is assistant && alias ass='assistant &!'    # Don't judge me.
++command.is calibre && alias ci='calibre &!'
 +command.is chromium && alias ch='chromium &!'
++command.is fbreader && alias fb='fbreader &!'
 +command.is firefox && alias ff='firefox &!'
 +command.is geeqie && alias gq='geeqie &!'
 +command.is torbrowser-launcher && alias tb='torbrowser-launcher &!'
@@ -547,7 +585,7 @@ for GREP_COMMAND in rg ag sift ack pt grep; do
         # If this command is ripgrep...
         if [[ "${GREP_COMMAND}" == 'rg' ]]; then
             # Configure ripgrep.
-            alias ripgrep="ripgrep${COLOR_OPTION}"
+            alias rg="rg --heading --hidden --line-number --one-file-system${COLOR_OPTION}"
 
             # Alias "gr" to the same command as well. By design, ripgrep
             # *ALWAYS* operates recursively.
@@ -580,9 +618,6 @@ if [[ -n "${IS_ZSH}"  ]]; then
     # Initialize the completion subsystem.
     autoload -Uz compinit
     compinit
-
-    # If zsh support for Fuzzy File Finder (FZF) is available, do so.
-    [[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
 elif [[ -n "${IS_BASH}" ]]; then
     # Enable programmable completion if *NOT* in strict POSIX-compatible mode
     # and one or more of the following Bash-specific completion files exist.
@@ -594,7 +629,9 @@ elif [[ -n "${IS_BASH}" ]]; then
         fi
     fi
 
-    # If bash support for Fuzzy File Finder (FZF) is available, do so.
+    # If bash support for Fuzzy File Finder (FZF) is available, do so. Note
+    # that the corresponding zsh-specific test is intentionally performed in
+    # the ".zshrc" script rather than this script. See that script for details.
     [[ -f ~/.fzf.bash ]] && source ~/.fzf.bash
 fi
 
