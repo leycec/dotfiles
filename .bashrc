@@ -190,6 +190,46 @@ function +dir.list_subdirs_mtime_depth() {
         command less
 }
 
+# ....................{ FUNCTIONS ~ kernel                }....................
+# void +kernel()
+#
+# Compile the current Linux kernel (i.e., "/usr/src/linux") and kernel modules,
+# create the tarball containing this compilation, copy this tarball to the
+# boot directory, and configure GRUB2 to load this tarball by default.
+function +kernel() {
+    (( $# >= 0 )) || {
+        echo 'Expected no arguments.' 1>&2
+        return 1
+    }
+
+    # If the current kernel does *NOT* exist or does but is unconfigured, fail.
+    [[ -f /usr/src/linux/.config ]] || {
+        echo 'Kernel configuration "/usr/src/linux/.config" not found.' 1>&2
+        return 1
+    }
+
+    # Change to the directory defining the current kernel.
+    pushd /usr/src/linux
+
+    echo '(Re)compiling kernel...'
+    sudo make -j3
+
+    echo
+    echo '(Re)compiling kernel modules...'
+    sudo make -j3 modules_install
+
+    echo
+    echo '(Re)installing kernel...'
+    sudo make install
+
+    echo
+    echo '(Re)configuring GRUB2...'
+    sudo grub-mkconfig -o /boot/grub/grub.cfg
+
+    # Revert to the prior directory.
+    popd
+}
+
 # ....................{ FUNCTIONS ~ rc                    }....................
 # void +rc()
 #
@@ -602,13 +642,25 @@ for GREP_COMMAND in rg ag sift ack pt grep; do
 done
 
 # ....................{ ALIASES ~ distro : gentoo         }....................
-# Gentoo Linux-specific aliases.
-+command.is emerge  && alias em='emerge'
-+command.is eselect && alias es='eselect'
-+command.is repoman && alias re='repoman'
+# If the "emerge" command is available, this is Gentoo Linux. In this case...
+if +command.is emerge; then
+    # Unconditional Gentoo Linux-specific aliases.
+    alias em='emerge'
+    alias es='eselect'
 
-# Configure "eix" to pipe ANSI color sequences to "less".
-+command.is eix && alias eix='eix --force-color'
+    # Alias "emw" to update all locally installed packages *WITHOUT* updating
+    # Portage first.
+    alias emw='emerge -uDvN @world'
+
+    # Alias "emsw" to update both Portage *AND* all locally installed packages.
+    alias emsw='emerge --sync && emw'
+
+    # Conditional Gentoo Linux-specific aliases.
+    +command.is repoman && alias re='repoman'
+
+    # Configure "eix" to pipe ANSI color sequences to "less".
+    +command.is eix && alias eix='eix --force-color'
+fi
 
 # ....................{ COMPLETIONS                       }....................
 if [[ -n "${IS_ZSH}"  ]]; then

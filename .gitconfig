@@ -29,7 +29,7 @@
 
 # ....................{ OTHER                              }....................
 [push]
-    default = tracking
+	default = current
 [branch]
     autosetuprebase = always
 [branch "master"]
