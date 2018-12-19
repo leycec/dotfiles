@@ -190,46 +190,6 @@ function +dir.list_subdirs_mtime_depth() {
         command less
 }
 
-# ....................{ FUNCTIONS ~ kernel                }....................
-# void +kernel()
-#
-# Compile the current Linux kernel (i.e., "/usr/src/linux") and kernel modules,
-# create the tarball containing this compilation, copy this tarball to the
-# boot directory, and configure GRUB2 to load this tarball by default.
-function +kernel() {
-    (( $# >= 0 )) || {
-        echo 'Expected no arguments.' 1>&2
-        return 1
-    }
-
-    # If the current kernel does *NOT* exist or does but is unconfigured, fail.
-    [[ -f /usr/src/linux/.config ]] || {
-        echo 'Kernel configuration "/usr/src/linux/.config" not found.' 1>&2
-        return 1
-    }
-
-    # Change to the directory defining the current kernel.
-    pushd /usr/src/linux
-
-    echo '(Re)compiling kernel...'
-    sudo make -j3
-
-    echo
-    echo '(Re)compiling kernel modules...'
-    sudo make -j3 modules_install
-
-    echo
-    echo '(Re)installing kernel...'
-    sudo make install
-
-    echo
-    echo '(Re)configuring GRUB2...'
-    sudo grub-mkconfig -o /boot/grub/grub.cfg
-
-    # Revert to the prior directory.
-    popd
-}
-
 # ....................{ FUNCTIONS ~ rc                    }....................
 # void +rc()
 #
@@ -260,6 +220,77 @@ function +rc.edit() {
     "${EDITOR}" ~/.bashrc
     +rc
 }
+
+# ....................{ FUNCTIONS ~ command               }....................
+# Functions conditionally dependent upon the existence of one or more commands.
+
+# If FFmpeg is in the current ${PATH}...
+if +command.is ffmpeg; then
+    # str +audio.convert_flac_to_mp3(flac_filename1, flac_filename2, ...)
+    #
+    # Convert each FLAC-uncompressed audio file with the passed filename into
+    # an MP3-compressed audio file with the same filename whose filetype is
+    # "mp3" rather than "flac".
+    function +audio.convert_flac_to_mp3() {
+        (( $# >= 1 )) || {
+            echo 'Expected one or more filenames.' 1>& 2
+            return 1
+        }
+
+        local flac_filename mp3_filename
+        for   flac_filename in "${@}"; do
+            mp3_filename="${flac_filename%.flac}.mp3"
+
+            print "Converting \"${flac_filename}\" to \"${mp3_filename}\"..."
+            command ffmpeg -i "${flac_filename}" -qscale:a 0 "${mp3_filename}"
+        done
+    }
+fi
+
+# ....................{ FUNCTIONS ~ linux : kernel        }....................
+# Functions conditionally dependent upon the Linux platform.
+
+# If the canonical directory containing Linux kernel sources exists...
+if [[ -d /usr/src/linux ]]; then
+    # void +kernel()
+    #
+    # Compile the current Linux kernel (i.e., "/usr/src/linux") and kernel modules,
+    # create the tarball containing this compilation, copy this tarball to the
+    # boot directory, and configure GRUB2 to load this tarball by default.
+    function +kernel() {
+        (( $# >= 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        # If the current kernel does *NOT* exist or does but is unconfigured, fail.
+        [[ -f /usr/src/linux/.config ]] || {
+            echo 'Kernel configuration "/usr/src/linux/.config" not found.' 1>&2
+            return 1
+        }
+
+        # Change to the directory defining the current kernel.
+        pushd /usr/src/linux
+
+        echo '(Re)compiling kernel...'
+        sudo make -j3
+
+        echo
+        echo '(Re)compiling kernel modules...'
+        sudo make -j3 modules_install
+
+        echo
+        echo '(Re)installing kernel...'
+        sudo make install
+
+        echo
+        echo '(Re)configuring GRUB2...'
+        sudo grub-mkconfig -o /boot/grub/grub.cfg
+
+        # Revert to the prior directory.
+        popd
+    }
+fi
 
 # ....................{ GLOBALS ~ path                    }....................
 # echo "PATH=${PATH} (before)"
