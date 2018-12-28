@@ -36,6 +36,8 @@
 # Whitelist all dotfile-specific paths in the home directory by default. This
 # whitelist may be (and often is) overridden by lower-level ".gitignore" files
 # nested in these paths.
+!/.audacity-data
+!/.audacity-data/Audacity-keys.xml
 !/.bash_profile
 !/.bashrc
 !/.gitconfig
