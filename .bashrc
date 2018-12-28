@@ -221,7 +221,7 @@ function +rc.edit() {
     +rc
 }
 
-# ....................{ FUNCTIONS ~ command               }....................
+# ....................{ FUNCTIONS ~ command : audio       }....................
 # Functions conditionally dependent upon the existence of one or more commands.
 
 # If FFmpeg is in the current ${PATH}...
@@ -233,7 +233,7 @@ if +command.is ffmpeg; then
     # "mp3" rather than "flac".
     function +audio.convert_flac_to_mp3() {
         (( $# >= 1 )) || {
-            echo 'Expected one or more filenames.' 1>& 2
+            echo 'Expected one or more filenames.' 1>&2
             return 1
         }
 
@@ -241,9 +241,51 @@ if +command.is ffmpeg; then
         for   flac_filename in "${@}"; do
             mp3_filename="${flac_filename%.flac}.mp3"
 
-            print "Converting \"${flac_filename}\" to \"${mp3_filename}\"..."
+            echo "Converting \"${flac_filename}\" to \"${mp3_filename}\"..."
             command ffmpeg -i "${flac_filename}" -qscale:a 0 "${mp3_filename}"
         done
+    }
+fi
+
+# If "shnsplit" is in the current ${PATH}...
+if +command.is shnsplit; then
+    # str +audio.split_flac_with_cue(flac_filename, cue_filename)
+    #
+    # Split a monolithic FLAC-uncompressed audio file with the passed filename
+    # from the corresponding CUE-formatted metadata with the passed filename
+    # into one or more FLAC-uncompressed audio files in the current working
+    # directory with basename .
+    #
+    # If the "cuetools" suite of CLI utilities is available, the audio files
+    # produced by this function will also be tagged with appropriate metadata.
+    #
+    # This function's implementation is strongly inspired by the following
+    # StackOverflow answer, courtesy Michael H:
+    #     https://unix.stackexchange.com/a/30863/117478
+    function +audio.split_flac_with_cue() {
+        (( $# == 2 )) || {
+            echo 'Expected one FLAC filename and one CUE filename.' 1>&2
+            return 1
+        }
+
+        local flac_filename="${1}" cue_filename="${2}"
+
+        echo "Splitting \"${flac_filename}\" with \"${cue_filename}\"..."
+        command shnsplit \
+            -f "${cue_filename}" \
+            -t %n-%t \
+            -o flac "${flac_filename}"
+
+        # If "cuetag" (provided by the "cuetools" suite of CLI utilities) is in
+        # the current ${PATH}, tag each of the FLAC files produced by the prior
+        # command with the metadata provided by the same CUE file.
+        if +command.is cuetag.sh; then
+            echo "Tagging split FLAC files with \"${cue_filename}\"..."
+            command cuetag.sh "${cue_filename}" [0-9]*.flac
+        # Else, issue a non-fatal warning.
+        else
+            echo '"cuetools" not found; FLAC files left untagged.' 1>&2
+        fi
     }
 fi
 
