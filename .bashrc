@@ -621,11 +621,12 @@ fi
 # GUI-specific abbreviations, typically suffixed by "&!" to permit windowed
 # applications to be spawned in a detached manner from the current shell.
 +command.is assistant && alias ass='assistant &!'    # Don't judge me.
-+command.is calibre && alias ci='calibre &!'
-+command.is chromium && alias ch='chromium &!'
-+command.is fbreader && alias fb='fbreader &!'
-+command.is firefox && alias ff='firefox &!'
-+command.is geeqie && alias gq='geeqie &!'
++command.is audacity  && alias aud='audacity &!'
++command.is calibre   && alias ci='calibre &!'
++command.is chromium  && alias ch='chromium &!'
++command.is fbreader  && alias fb='fbreader &!'
++command.is firefox   && alias ff='firefox &!'
++command.is geeqie    && alias gq='geeqie &!'
 +command.is torbrowser-launcher && alias tb='torbrowser-launcher &!'
 
 # ....................{ ALIASES ~ abbreviations ~ grep    }....................
@@ -646,7 +647,14 @@ fi
 #   wallclock-sorted benchmarks for all commonly available "grep" alternatives.
 
 # For the basename of each alternative "grep" command (including "grep" itself)
-# in order of largely anecdotal efficiency...
+# in order of largely anecdotal efficiency, create the following aliases for
+# the first such command in the current ${PATH}:
+#
+# * "g", aliased to this command.
+# * "gr", aliased to this command passed the standard "-r" option, performing
+#   recursive operation.
+# * "gri", aliased to this command passed the standard "-r" and "-i" options,
+#   performing case-insensitive recursive operation.
 for GREP_COMMAND in rg ag sift ack pt grep; do
     # If this command exists...
     if +command.is "${GREP_COMMAND}"; then
@@ -661,10 +669,13 @@ for GREP_COMMAND in rg ag sift ack pt grep; do
             # Alias "gr" to the same command as well. By design, ripgrep
             # *ALWAYS* operates recursively.
             alias gr='g'
-        # Else, alias "gr" to this command passed the standard "-r" option
-        # enabling recursion. This assumption may not always hold, of course.
+            alias gri='g --ignore-case'
+        # Else, create all remaining aliases with short (i.e., non-GNU and
+        # hence portable) options. Although these simplistic assumptions may
+        # not always hold, they're certainly better than nothing.
         else
             alias gr='g -r'
+            alias gri='g -ri'
         fi
 
         # Cease iteration.
@@ -678,10 +689,14 @@ if +command.is emerge; then
     # Unconditional Gentoo Linux-specific aliases.
     alias em='emerge'
     alias es='eselect'
+    alias rcs='rc-service'
+    alias rcu='rc-update'
 
-    # Alias "emw" to update all locally installed packages *WITHOUT* updating
-    # Portage first.
-    alias emw='emerge -uDvN @world'
+    # Alias "emw" to update the following *WITHOUT* updating Portage first:
+    #
+    # * All locally installed packages with available updates.
+    # * All locally installed packages requiring obsolete preserved libraries.
+    alias emw='emerge -uDvN @world && emerge @preserved-rebuild'
 
     # Alias "emsw" to update both Portage *AND* all locally installed packages.
     alias emsw='emerge --sync && emw'
