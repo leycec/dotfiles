@@ -68,6 +68,30 @@ elif [[ -n "${IS_BASH}" ]]; then [[ $- == *i*      ]] || return
 fi
 # Else, the current shell is interactive. To quoth the Mario: "Let's a-go!"
 
+# ....................{ FUNCTIONS ~ aliases               }....................
+# Aliases principally intended to be expanded non-interactively (e.g., within
+# function bodies) rather than interactively at the command line.
+
+# void +args.pop()
+#
+# Remove the last argument from the current argument list. Dismantled, this is:
+#
+# * "$(($#-1))", expanding to the number of arguments on the current argument
+#   list minus one.
+# * "${@:1:...}", expanding to all passed arguments excluding the last.
+# * "set -- ...", resetting the current argument list to all passed arguments
+#   excluding the last.
+#
+# This alias is strongly inspired by the following StackOverflow answer:
+#     https://stackoverflow.com/a/26163980/2809027
+alias -- '+args.pop'='set -- "${@:1:$(($#-1))}"'
+
+# void +args.shift()
+#
+# Remove the first argument from the current argument list. While trivial, this
+# alias is defined for orthogonality with the non-trivial +args.pop() alias.
+alias -- '+args.shift'='shift'
+
 # ....................{ FUNCTIONS                         }....................
 # For disambiguity (e.g., with external commands in the current ${PATH}), *ALL*
 # functions defined below are prefixed with punctuation supported by both bash
@@ -221,12 +245,41 @@ function +rc.edit() {
     +rc
 }
 
-# ....................{ FUNCTIONS ~ command : audio       }....................
+# ....................{ FUNCTIONS ~ command               }....................
 # Functions conditionally dependent upon the existence of one or more commands.
 
+# ....................{ FUNCTIONS ~ command : archive     }....................
+# If "zip" is in the current ${PATH}...
+if +command.is zip; then
+    # str +archive.make_zip(
+    #     str zip_filename, str input_filename1, str input_filename2, ...)
+    #
+    # Compress the input files with the passed filenames into a new output
+    # compressed zip-formatted archive with the passed filename.
+    #
+    # For simplicity, this function unconditionally compresses these filenames
+    # for maximum compressability and hence minimal output filesize.
+    function +archive.make_zip() {
+        (( $# >= 2 )) || {
+            echo 'Expected one or more input filenames and one output zip filename.' 1>&2
+            return 1
+        }
+
+        # Compress all input files into this output zip file. Dismantled, this
+        # is:
+        #
+        # * "-9", enabling the maximum compression rate.
+        # * "--recurse-paths", transparently compressing directories as well.
+        # * "--verbose", displaying progress while compressing.
+        command zip -9 --recurse-paths --verbose "${@}"
+    }
+fi
+
+# ....................{ FUNCTIONS ~ command : audio       }....................
 # If FFmpeg is in the current ${PATH}...
 if +command.is ffmpeg; then
-    # str +audio.convert_flac_to_mp3(flac_filename1, flac_filename2, ...)
+    # str +audio.convert_flac_to_mp3(
+    #     str flac_filename1, str flac_filename2, ...)
     #
     # Convert each FLAC-uncompressed audio file with the passed filename into
     # an MP3-compressed audio file with the same filename whose filetype is
@@ -249,7 +302,7 @@ fi
 
 # If "shnsplit" is in the current ${PATH}...
 if +command.is shnsplit; then
-    # str +audio.split_flac_with_cue(flac_filename, cue_filename)
+    # str +audio.split_flac_with_cue(str flac_filename, str cue_filename)
     #
     # Split a monolithic FLAC-uncompressed audio file with the passed filename
     # from the corresponding CUE-formatted metadata with the passed filename
