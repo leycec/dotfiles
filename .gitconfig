@@ -40,9 +40,8 @@
     a = add
     aa = add --all
     b = branch
-    c = commit
+    c = commit --allow-empty
     ca = commit --amend
-    ci = commit
     cl = clone
     co = checkout
     cp = cherry-pick
@@ -53,10 +52,12 @@
     pl = pull
     ps = push
     r = rebase
+    rem = remote
     ri = rebase --interactive
-    rt = remote
     s = status
+    sh = stash
     st = status
+    t = tag
 [rerere]
     enabled = true
 [status]

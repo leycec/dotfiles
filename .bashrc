@@ -342,6 +342,68 @@ if +command.is shnsplit; then
     }
 fi
 
+# ....................{ FUNCTIONS ~ command : x.org       }....................
+# If "startx" is in the current ${PATH}...
+if +command.is startx; then
+    # str +x()
+    #
+    # Locally start X.org in a reasonably intelligent manner. Specifically,
+    # this function (in order):
+    #
+    # * Starts the X.org server if needed.
+    # * Starts a new X.org client, locally connected to this server.
+    # * Creates a new X.org session under this client-server connection,
+    #   typically defined by the "${XSESSION}" global in the "/etc/profile.env"
+    #   file or a subsidiary thereof (e.g., "/etc/env/90xsession").
+    # * Redirects all standard output and error from the "startx" command to
+    #   the "~/.xorglog" dotfile.
+    function +x() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        # Start X.org, redirecting both stderr and stdout to a user-specific
+        # dot logfile while preserving all terminal output.
+        echo 'Starting X.org logged to "~/.xorglog"...'
+        command startx 2>&1 | tee ~/.xorglog
+    }
+fi
+
+# If "xset" is in the current ${PATH}...
+if +command.is xset; then
+    # str +x.disable_dpms()
+    #
+    # Disable both Display Power Management Signaling (DPMS) and DPMS-based
+    # screen blanking for the current X.org session.
+    function +x.disable_dpms() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        # So it goes.
+        echo 'Disabling X.org DPMS and DPMS-based screen blanking...'
+        command xset s off -dpms 
+    }
+
+
+    # str +x.enable_dpms()
+    #
+    # Enable both Display Power Management Signaling (DPMS) and DPMS-based
+    # screen blanking for the current X.org session.
+    function +x.enable_dpms() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        # Make it so.
+        echo 'Enabling X.org DPMS and DPMS-based screen blanking...'
+        command xset s on -dpms 
+    }
+fi
+
 # ....................{ FUNCTIONS ~ linux : kernel        }....................
 # Functions conditionally dependent upon the Linux platform.
 
@@ -349,9 +411,10 @@ fi
 if [[ -d /usr/src/linux ]]; then
     # void +kernel()
     #
-    # Compile the current Linux kernel (i.e., "/usr/src/linux") and kernel modules,
-    # create the tarball containing this compilation, copy this tarball to the
-    # boot directory, and configure GRUB2 to load this tarball by default.
+    # Compile the current Linux kernel (i.e., "/usr/src/linux") and set of all
+    # currently enabled kernel modules, create the tarball containing this
+    # compilation, copy this tarball into the boot directory, and configure
+    # GRUB2 to load this tarball by default.
     function +kernel() {
         (( $# >= 0 )) || {
             echo 'Expected no arguments.' 1>&2
@@ -703,6 +766,7 @@ fi
 # to be installed by default (i.e., not bundled with "coreutils").
 
 # CLI-specific abbreviations.
++command.is alsamixer && alias am='alsamixer'
 +command.is fzf && alias fz='fzf'
 +command.is htop && alias ht='htop'
 +command.is ncdu && alias du='ncdu'
@@ -715,13 +779,14 @@ fi
 
 # GUI-specific abbreviations, typically suffixed by "&!" to permit windowed
 # applications to be spawned in a detached manner from the current shell.
-+command.is assistant && alias ass='assistant &!'    # Don't judge me.
-+command.is audacity  && alias aud='audacity &!'
-+command.is calibre   && alias ci='calibre &!'
-+command.is chromium  && alias ch='chromium &!'
-+command.is fbreader  && alias fb='fbreader &!'
-+command.is firefox   && alias ff='firefox &!'
-+command.is geeqie    && alias gq='geeqie &!'
++command.is assistant  && alias ass='assistant &!'      # Don't judge me.
++command.is audacity   && alias aud='audacity &!'
++command.is calibre    && alias cb='calibre &!'
++command.is chromium   && alias ch='chromium &!'
++command.is fbreader   && alias fb='fbreader &!'
++command.is firefox    && alias ff='firefox &!'
++command.is geeqie     && alias gq='geeqie &!'
++command.is qtcreator  && alias qtc='qtcreator &!'
 +command.is torbrowser-launcher && alias tb='torbrowser-launcher &!'
 
 # ....................{ ALIASES ~ abbreviations ~ grep    }....................
