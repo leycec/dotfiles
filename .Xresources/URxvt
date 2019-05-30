@@ -14,7 +14,7 @@
 ! the current X.org server *OR* merging such changes into the "xrdb" database
 ! of the current X.org server: e.g.,
 !
-!     >>> xrdb -merge ~/.Xresources/URxvt
+!     $ xrdb -merge ~/.Xresources/URxvt
 !
 ! --------------------( KEY BINDINGS                      )--------------------
 ! URxvt supports the following key bindings:
@@ -85,6 +85,7 @@ URxvt*skipBuiltinGlyphs: false
 ! For compatibility with Powerline patches, prefer odd point sizes (e.g., 21).
 !URxvt*font: xft:Monospace:pixelsize=21
 URxvt*font: xft:Monospace:pixelsize=24
+!URxvt*font: xft:Monospace:pixelsize=26
 !URxvt*font: xft:Monospace:pixelsize=31
 
 ! ....................{ TINTING ~ pseudo-transparency     }....................

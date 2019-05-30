@@ -404,12 +404,32 @@ if +command.is xset; then
     }
 fi
 
+
+# If "xrandr" is in the current ${PATH}...
+if +command.is xrandr; then
+    # str +x.restore_screen()
+    #
+    # Restore the resolution and frequency of the current screen to its nominal
+    # factory preset, typically after another misbehaving application harmfully
+    # changed these settings.
+    function +x.restore_screen() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        # So it goes.
+        echo 'Restoring X.org resolution and frequency...'
+        command xrandr --output DVI-I-0 --mode 1920x1080 --rate 60
+    }
+fi
+
 # ....................{ FUNCTIONS ~ linux : kernel        }....................
 # Functions conditionally dependent upon the Linux platform.
 
 # If the canonical directory containing Linux kernel sources exists...
 if [[ -d /usr/src/linux ]]; then
-    # void +kernel()
+    # str +kernel()
     #
     # Compile the current Linux kernel (i.e., "/usr/src/linux") and set of all
     # currently enabled kernel modules, create the tarball containing this
@@ -421,9 +441,10 @@ if [[ -d /usr/src/linux ]]; then
             return 1
         }
 
-        # If the current kernel does *NOT* exist or does but is unconfigured, fail.
+        # If either no kernel exists or an unconfigured kernel exists, fail.
         [[ -f /usr/src/linux/.config ]] || {
-            echo 'Kernel configuration "/usr/src/linux/.config" not found.' 1>&2
+            echo \
+                'Kernel configuration "/usr/src/linux/.config" not found.' 1>&2
             return 1
         }
 
@@ -434,8 +455,12 @@ if [[ -d /usr/src/linux ]]; then
         sudo make -j3
 
         echo
-        echo '(Re)compiling kernel modules...'
+        echo '(Re)compiling kernel modules (first-party)...'
         sudo make -j3 modules_install
+
+        echo
+        echo '(Re)compiling kernel modules (third-party)...'
+        sudo emerge @module-rebuild
 
         echo
         echo '(Re)installing kernel...'
@@ -782,7 +807,8 @@ fi
 +command.is assistant  && alias ass='assistant &!'      # Don't judge me.
 +command.is audacity   && alias aud='audacity &!'
 +command.is calibre    && alias cb='calibre &!'
-+command.is chromium   && alias ch='chromium &!'
++command.is chromium   && alias ch='chromium -incognito &!'
++command.is deluge-gtk && alias de='deluge-gtk &!'
 +command.is fbreader   && alias fb='fbreader &!'
 +command.is firefox    && alias ff='firefox &!'
 +command.is geeqie     && alias gq='geeqie &!'
@@ -846,6 +872,9 @@ done
 # ....................{ ALIASES ~ distro : gentoo         }....................
 # If the "emerge" command is available, this is Gentoo Linux. In this case...
 if +command.is emerge; then
+    # Configure Gentoo Linux-based commands with sane defaults.
+    alias rc-update='rc-update --verbose'
+
     # Unconditional Gentoo Linux-specific aliases.
     alias em='emerge'
     alias es='eselect'
