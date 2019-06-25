@@ -248,22 +248,29 @@ function +rc.edit() {
 # ....................{ FUNCTIONS ~ command               }....................
 # Functions conditionally dependent upon the existence of one or more commands.
 
-# ....................{ FUNCTIONS ~ command : archive     }....................
+# ....................{ FUNCTIONS ~ command : arch : zip  }....................
 # If "zip" is in the current ${PATH}...
 if +command.is zip; then
     # str +archive.make_zip(
     #     str zip_filename, str input_filename1, str input_filename2, ...)
     #
-    # Compress the input files with the passed filenames into a new output
+    # Compress the input files with the passed pathnames into a new output
     # compressed zip-formatted archive with the passed filename.
     #
-    # For simplicity, this function unconditionally compresses these filenames
-    # for maximum compressability and hence minimal output filesize.
+    # For simplicity, this function unconditionally compresses these paths for
+    # maximum compressability and thus minimal output filesize.
     function +archive.make_zip() {
-        (( $# >= 2 )) || {
-            echo 'Expected one or more input filenames and one output zip filename.' 1>&2
+        (( $# >= 1 )) || {
+            echo 'Expected one optional output zip filename and one or more mandatory input pathnames.' 1>&2
             return 1
         }
+
+        # If passed only one input path, default to an output zip filename in
+        # the current working directory (CWD) whose basename is this input
+        # pathname appended by a ".zip" filetype.
+        if (( $# == 1 )); then
+            set -- "${1}.zip" "${@}"
+        fi
 
         # Compress all input files into this output zip file. Dismantled, this
         # is:
@@ -272,6 +279,26 @@ if +command.is zip; then
         # * "--recurse-paths", transparently compressing directories as well.
         # * "--verbose", displaying progress while compressing.
         command zip -9 --recurse-paths --verbose "${@}"
+    }
+fi
+
+# If "unzip" is in the current ${PATH}...
+if +command.is unzip; then
+    # str +archive.list_zip(str zip_filename)
+    #
+    # List the contents of the zip-formatted archive with the passed filename.
+    function +archive.list_zip() {
+        (( $# == 1 )) || {
+            echo 'Expected one zip filename.' 1>&2
+            return 1
+        }
+
+        # List the contents of this zip file. Dismantled, this is:
+        #
+        # * "-l", listing this zip file's contents.
+        # * "-v", verbosely displaying supplementary per-file metadata (e.g.,
+        #         compression method, size, ratio, 32-bit CRC).
+        command unzip -l -v "${@}"
     }
 fi
 
@@ -730,10 +757,6 @@ alias ls="ls ${LS_OPTIONS}"
 alias dir="dir ${LS_OPTIONS}"
 alias vdir="vdir ${LS_OPTIONS}"
 
-# ....................{ ALIASES ~ linux                   }....................
-# Configure Linux-specific commands with sane defaults.
-+command.is lsblk && alias lsblk='lsblk --fs'
-
 # ....................{ ALIASES ~ abbreviations           }....................
 # One-letter abbreviations for brave brevity.
 alias c='cp'
@@ -770,23 +793,7 @@ alias umo='umount'
 # * "lram", recursively listing all metal albums sorted by mtime.
 alias lram='+dir.list_subdirs_mtime_depth ~/pub/audio/metal 3'
 
-# ....................{ ALIASES ~ abbreviations ~ shell   }....................
-# Abbreviations conditionally dependent upon the current shell.
-
-# Alias:
-#
-# * "wh" to list the absolute filenames and/or definitions of all external
-#   commands, shell aliases, and shell functions with the passed names.
-# * "print" to "echo" under bash. Under zsh, the two are effectively synonyms
-#   of one another for most intents and purposes.
-if   [[ -n "${IS_ZSH}"  ]]; then
-    alias wh='whence -acS -x 4'
-elif [[ -n "${IS_BASH}" ]]; then
-    alias wh='type -a'
-    alias print='echo'
-fi
-
-# ....................{ ALIASES ~ abbreviations ~ apps    }....................
+# ....................{ ALIASES ~ cli                     }....................
 # Abbreviations conditionally dependent upon external commands *NOT* guaranteed
 # to be installed by default (i.e., not bundled with "coreutils").
 
@@ -794,6 +801,7 @@ fi
 +command.is alsamixer && alias am='alsamixer'
 +command.is fzf && alias fz='fzf'
 +command.is htop && alias ht='htop'
++command.is links && alias li='links'
 +command.is ncdu && alias du='ncdu'
 +command.is ncmpcpp && alias n='ncmpcpp'  # the command whose name nobody knows
 
@@ -802,20 +810,7 @@ if +command.is vcsh; then
     alias vce='vcsh enter'
 fi
 
-# GUI-specific abbreviations, typically suffixed by "&!" to permit windowed
-# applications to be spawned in a detached manner from the current shell.
-+command.is assistant  && alias ass='assistant &!'      # Don't judge me.
-+command.is audacity   && alias aud='audacity &!'
-+command.is calibre    && alias cb='calibre &!'
-+command.is chromium   && alias ch='chromium -incognito &!'
-+command.is deluge-gtk && alias de='deluge-gtk &!'
-+command.is fbreader   && alias fb='fbreader &!'
-+command.is firefox    && alias ff='firefox &!'
-+command.is geeqie     && alias gq='geeqie &!'
-+command.is qtcreator  && alias qtc='qtcreator &!'
-+command.is torbrowser-launcher && alias tb='torbrowser-launcher &!'
-
-# ....................{ ALIASES ~ abbreviations ~ grep    }....................
+# ....................{ ALIASES ~ cli : grep              }....................
 # If an alternative "grep" command (e.g., ripgrep, Silver Surfer) is available,
 # alias "g" and "gr" to the most efficient such command; else, fallback to
 # vanilla "grep" for sanity. Anecdotally:
@@ -869,7 +864,15 @@ for GREP_COMMAND in rg ag sift ack pt grep; do
     fi
 done
 
-# ....................{ ALIASES ~ distro : gentoo         }....................
+# ....................{ ALIASES ~ cli : linux             }....................
+# Abbreviations conditionally dependent upon Linux-specific external commands.
+
+# Configure Linux-specific commands with sane defaults.
++command.is lsblk && alias lsblk='lsblk --fs'
+
+# ....................{ ALIASES ~ cli : linux : gentoo    }....................
+# Abbreviations conditionally dependent upon Gentoo-specific external commands.
+
 # If the "emerge" command is available, this is Gentoo Linux. In this case...
 if +command.is emerge; then
     # Configure Gentoo Linux-based commands with sane defaults.
@@ -896,6 +899,36 @@ if +command.is emerge; then
     # Configure "eix" to pipe ANSI color sequences to "less".
     +command.is eix && alias eix='eix --force-color'
 fi
+
+# ....................{ ALIASES ~ cli : shell             }....................
+# Abbreviations conditionally dependent upon the current shell.
+
+# Alias:
+#
+# * "wh" to list the absolute filenames and/or definitions of all external
+#   commands, shell aliases, and shell functions with the passed names.
+# * "print" to "echo" under bash. Under zsh, the two are effectively synonyms
+#   of one another for most intents and purposes.
+if   [[ -n "${IS_ZSH}"  ]]; then
+    alias wh='whence -acS -x 4'
+elif [[ -n "${IS_BASH}" ]]; then
+    alias wh='type -a'
+    alias print='echo'
+fi
+
+# ....................{ ALIASES ~ gui                     }....................
+# GUI-specific abbreviations, typically suffixed by "&!" to permit windowed
+# applications to be spawned in a detached manner from the current shell.
++command.is assistant  && alias ass='assistant &!'      # Don't judge me.
++command.is audacity   && alias aud='audacity &!'
++command.is calibre    && alias cb='calibre &!'
++command.is chromium   && alias ch='chromium -incognito &!'
++command.is deluge-gtk && alias de='deluge-gtk &!'
++command.is fbreader   && alias fb='fbreader &!'
++command.is firefox    && alias ff='firefox &!'
++command.is geeqie     && alias gq='geeqie &!'
++command.is qtcreator  && alias qtc='qtcreator &!'
++command.is torbrowser-launcher && alias tb='torbrowser-launcher &!'
 
 # ....................{ COMPLETIONS                       }....................
 if [[ -n "${IS_ZSH}"  ]]; then
