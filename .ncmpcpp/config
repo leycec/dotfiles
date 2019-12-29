@@ -82,8 +82,8 @@ mpd_music_dir = "/home/leycec/pub/audio"
 #
 ## Available values: spectrum, wave, wave_filled, ellipse.
 ##
+#visualizer_type = spectrum
 #visualizer_type = wave
-visualizer_type = spectrum
 #
 #visualizer_look = ●▮
 #
@@ -450,8 +450,8 @@ ignore_leading_the = yes
 ## filtering lists. This takes an effect only if boost was compiled with ICU
 ## support.
 ##
+#ignore_diacritics = yes
 #ignore_diacritics = no
-ignore_diacritics = yes
 #
 #block_search_constraints_change_if_items_found = yes
 #

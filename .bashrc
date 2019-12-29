@@ -508,16 +508,17 @@ fi
 # Define the current ${PATH} (i.e., user-specific ":"-delimited list of the
 # absolute dirnames of all directories to locate command basenames relative to)
 # *BEFORE* performing any subsequent logic possibly expecting this ${PATH}.
-# PATH="${PATH}:${HOME}/bash:${HOME}/perl:${HOME}/zsh"
-# PATH="${HOME}/bash:${HOME}/perl:${HOME}/zsh"
-+path.append ~/bash ~/perl ~/zsh
-# +path.append "${HOME}/bash"
-
-# If Miniconda3 is available, prepend the absolute dirname of the Miniconda3
-# subdirectory defining external commands to the current ${PATH} *AFTER*
-# defining the ${PATH}, ensuring that system-wide commands (e.g., "python3")
-# take precedence over Miniconda3-specific commands of the same basename.
-+path.append ~/py/miniconda3/bin
+# Paths possibly containing commands include:
+#
+# * "/usr/local/bin", containing custom system-wide commands.
+# * "${HOME}/bash", containing Bash-specific scripts.
+# * "${HOME}/perl", containing Perl-specific scripts.
+# * "${HOME}/zsh", containing zsh-specific scripts.
+# * "${HOME}/py/miniconda3/bin", containing Miniconda3-specific commands. Note
+#   that appending (rather than prepending) this directory ensures system-wide
+#   commands (e.g., "python3") take precedence over Miniconda3-specific
+#   commands of the same basename.
++path.append /usr/local/bin ~/bash ~/perl ~/zsh ~/py/miniconda3/bin
 
 # echo "PATH=${PATH} (after)"
 
@@ -797,13 +798,24 @@ alias lram='+dir.list_subdirs_mtime_depth ~/pub/audio/metal 3'
 # Abbreviations conditionally dependent upon external commands *NOT* guaranteed
 # to be installed by default (i.e., not bundled with "coreutils").
 
-# CLI-specific abbreviations.
+# CLI-specific one-to-one abbreviations.
 +command.is alsamixer && alias am='alsamixer'
 +command.is fzf && alias fz='fzf'
 +command.is htop && alias ht='htop'
 +command.is links && alias li='links'
 +command.is ncdu && alias du='ncdu'
 +command.is ncmpcpp && alias n='ncmpcpp'  # the command whose name nobody knows
++command.is ping && alias pi='ping'
+
+# CLI-specific one-to-many abbreviations.
+if +command.is dmesg; then
+    alias dm='dmesg'
+    alias dmt='dmesg | tail --follow'  # this abbreviation is uncoincidental
+fi
+
+if +command.is ip; then
+    alias ipa='ip addr'
+fi
 
 if +command.is vcsh; then
     alias vc='vcsh'
@@ -891,9 +903,10 @@ if +command.is emerge; then
     alias emw='emerge -uDvN @world && emerge @preserved-rebuild'
 
     # Alias "emsw" to update both Portage *AND* all locally installed packages.
-    alias emsw='emerge --sync && emw'
+    alias emsw='emerge --sync; emw'
 
     # Conditional Gentoo Linux-specific aliases.
+    +command.is dispatch-conf && alias dc='dispatch-conf'
     +command.is repoman && alias re='repoman'
 
     # Configure "eix" to pipe ANSI color sequences to "less".
@@ -919,15 +932,16 @@ fi
 # ....................{ ALIASES ~ gui                     }....................
 # GUI-specific abbreviations, typically suffixed by "&!" to permit windowed
 # applications to be spawned in a detached manner from the current shell.
-+command.is assistant  && alias ass='assistant &!'      # Don't judge me.
-+command.is audacity   && alias aud='audacity &!'
-+command.is calibre    && alias cb='calibre &!'
-+command.is chromium   && alias ch='chromium -incognito &!'
-+command.is deluge-gtk && alias de='deluge-gtk &!'
-+command.is fbreader   && alias fb='fbreader &!'
-+command.is firefox    && alias ff='firefox &!'
-+command.is geeqie     && alias gq='geeqie &!'
-+command.is qtcreator  && alias qtc='qtcreator &!'
++command.is assistant   && alias ass='assistant &!'      # Don't judge me.
++command.is audacity    && alias aud='audacity &!'
++command.is calibre     && alias cb='calibre &!'
++command.is chromium    && alias ch='chromium -incognito &!'
++command.is deluge-gtk  && alias de='deluge-gtk &!'
++command.is fbreader    && alias fb='fbreader &!'
++command.is firefox     && alias ff='firefox &!'
++command.is geeqie      && alias gq='geeqie &!'
++command.is qtcreator   && alias qtc='qtcreator &!'
++command.is simple-scan && alias sc='simple-scan &!'
 +command.is torbrowser-launcher && alias tb='torbrowser-launcher &!'
 
 # ....................{ COMPLETIONS                       }....................
