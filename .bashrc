@@ -309,8 +309,8 @@ if +command.is ffmpeg; then
     #     str flac_filename1, str flac_filename2, ...)
     #
     # Convert each FLAC-uncompressed audio file with the passed filename into
-    # an MP3-compressed audio file with the same filename whose filetype is
-    # "mp3" rather than "flac".
+    # an MP3-compressed audio file with the same filename with filetype "mp3"
+    # rather than "flac".
     function +audio.convert_flac_to_mp3() {
         (( $# >= 1 )) || {
             echo 'Expected one or more filenames.' 1>&2
@@ -321,8 +321,42 @@ if +command.is ffmpeg; then
         for   flac_filename in "${@}"; do
             mp3_filename="${flac_filename%.flac}.mp3"
 
+            # Dismantled, this is:
+            #
+            # * "-qscale:a 0", encoding only audio with fixed quality scale
+            #   variable bitrate (VBR) with the optimum preset predefined by
+            #   the target codec. While codec-dependent, this typically
+            #   approximates standard high-quality 320Kb CBR compressed audio.
             echo "Converting \"${flac_filename}\" to \"${mp3_filename}\"..."
             command ffmpeg -i "${flac_filename}" -qscale:a 0 "${mp3_filename}"
+        done
+    }
+
+
+    # str +audio.convert_wav_to_mp3(
+    #     str wav_filename1, str wav_filename2, ...)
+    #
+    # Convert each WAV-uncompressed audio file with the passed filename into
+    # an MP3-compressed audio file with the same filename with filetype "mp3"
+    # rather than "wav".
+    function +audio.convert_wav_to_mp3() {
+        (( $# >= 1 )) || {
+            echo 'Expected one or more filenames.' 1>&2
+            return 1
+        }
+
+        local wav_filename mp3_filename
+        for   wav_filename in "${@}"; do
+            mp3_filename="${wav_filename%.wav}.mp3"
+
+            # Dismantled, this is:
+            #
+            # * "-qscale:a 0", encoding only audio with fixed quality scale
+            #   variable bitrate (VBR) with the optimum preset predefined by
+            #   the target codec. While codec-dependent, this typically
+            #   approximates standard high-quality 320Kb CBR compressed audio.
+            echo "Converting \"${wav_filename}\" to \"${mp3_filename}\"..."
+            command ffmpeg -i "${wav_filename}" -qscale:a 0 "${mp3_filename}"
         done
     }
 fi
