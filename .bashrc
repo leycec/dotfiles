@@ -160,6 +160,48 @@ function +path.append() {
     export PATH
 }
 
+# ....................{ COLOUR                            }....................
+# Enable colour support for all relevant "coreutils" commands *AFTER* defining
+# core functions above (e.g., +command.is()) but *BEFORE* defining non-core
+# functions below leveraging this support (e.g., ${COLOUR_OPTION}).
+
+# GNU-style long option unconditionally enabling color support in most modern
+# CLI commands, defaulting to the empty string (i.e., ignoring color support).
+COLOR_OPTION=
+
+# If this shell supports color...
+if [[ -n "${IS_COLOR}" ]]; then
+    # Unconditionally enable color support regardless of context. A comparable
+    # "--color=auto" option only conditionally enables colors if the current
+    # command outputs to an interactive shell.  While *USUALLY* desirable, such
+    # detection fails for the common case of outputting to a pipe (e.g.,
+    # "less") outputting to an interactive shell.
+    COLOR_OPTION=' --color=always'
+
+    # Configure "less" to preserve control characters and hence color codes.
+    alias less='less --RAW-CONTROL-CHARS'
+
+    # Color GCC warnings and errors.
+    export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
+
+    # If the "dircolors" command exists, evaluate the output of this command to
+    # define the ${LS_COLORS} environment variable appropriately.
+    if +command.is dircolors; then
+        # If a user-specific ".dircolors" dotfile exists, replace the current
+        # "dircolors" configuration (if any) with that specified by this file.
+        if [[ -f ~/.dircolors ]]; then
+            eval "$(dircolors --sh ~/.dircolors)"
+        # Else if a system-wide "DIR_COLORS" file exists, replace the current
+        # "dircolors" configuration (if any) with that specified by this file.
+        elif [[ -f /etc/DIR_COLORS ]]; then
+            eval "$(dircolors --sh /etc/DIR_COLORS)"
+        # Else, fallback to the default "dircolors" configuration.
+        else
+            eval "$(dircolors --sh)"
+        fi
+    fi
+fi
+
 # ....................{ FUNCTIONS ~ dir                   }....................
 # str +dir.list_subdirs_mtime(str dirname)
 #
@@ -284,6 +326,36 @@ fi
 
 # If "unzip" is in the current ${PATH}...
 if +command.is unzip; then
+    # str +archive.find_in_zip(str regex, str zip_filename1, ...)
+    #
+    # Find all paths contained in any zip-formatted archives with the passed
+    # filenames such that the relative pathnames of these paths in these
+    # archives match the passed extended regular expression.
+    #
+    # This alias is strongly inspired by the following StackOverflow comment:
+    #     https://unix.stackexchange.com/a/562391/117478
+    function +archive.find_in_zip() {
+        (( $# >= 2 )) || {
+            echo 'Expected one extended regular expression and one or more zip filenames.' 1>&2
+            return 1
+        }
+
+        # Localize and remove the passed regex from the argument list.
+        local regex="${1}" zip_filename
+        +args.shift
+
+        # For each passed zip filename...
+        for zip_filename in "${@}"; do
+            # Print the name of this filename for disambiguity.
+            echo "${zip_filename}:"
+
+            # Print all paths in this file matching this regex.
+            command unzip -l "${zip_filename}" |
+                command grep --extended-regexp --color=always "${regex}"
+        # Page the above output for readability.
+        done | less
+    }
+
     # str +archive.list_zip(str zip_filename)
     #
     # List the contents of the zip-formatted archive with the passed filename.
@@ -729,46 +801,6 @@ if [[ -z "${XDG_RUNTIME_DIR}" ]]; then
     fi
 fi
 
-# ....................{ COLOUR                            }....................
-# Enable colour support for all relevant "coreutils" commands.
-
-# GNU-style long option unconditionally enabling color support in most modern
-# CLI commands, defaulting to the empty string (i.e., ignoring color support).
-COLOR_OPTION=
-
-# If this shell supports color...
-if [[ -n "${IS_COLOR}" ]]; then
-    # Unconditionally enable color support regardless of context. A comparable
-    # "--color=auto" option only conditionally enables colors if the current
-    # command outputs to an interactive shell.  While *USUALLY* desirable, such
-    # detection fails for the common case of outputting to a pipe (e.g.,
-    # "less") outputting to an interactive shell.
-    COLOR_OPTION=' --color=always'
-
-    # Configure "less" to preserve control characters and hence color codes.
-    alias less='less --RAW-CONTROL-CHARS'
-
-    # Color GCC warnings and errors.
-    export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
-
-    # If the "dircolors" command exists, evaluate the output of this command to
-    # define the ${LS_COLORS} environment variable appropriately.
-    if +command.is dircolors; then
-        # If a user-specific ".dircolors" dotfile exists, replace the current
-        # "dircolors" configuration (if any) with that specified by this file.
-        if [[ -f ~/.dircolors ]]; then
-            eval "$(dircolors --sh ~/.dircolors)"
-        # Else if a system-wide "DIR_COLORS" file exists, replace the current
-        # "dircolors" configuration (if any) with that specified by this file.
-        elif [[ -f /etc/DIR_COLORS ]]; then
-            eval "$(dircolors --sh /etc/DIR_COLORS)"
-        # Else, fallback to the default "dircolors" configuration.
-        else
-            eval "$(dircolors --sh)"
-        fi
-    fi
-fi
-
 # ....................{ ALIASES ~ coreutils               }....................
 # Configure "coreutils"-based commands with sane defaults.
 alias chmod='chmod --changes --preserve-root'
@@ -781,7 +813,8 @@ alias mkdir='mkdir --parents'
 alias rm='rm --interactive --verbose'
 
 # Colour "grep"-like commands with options defined above.
-GREP_OPTIONS="--binary-files=without-match --extended-regexp --initial-tab --line-number${COLOR_OPTION}"
+GREP_CORE_OPTIONS="--extended-regexp${COLOR_OPTION}"
+GREP_OPTIONS="${GREP_CORE_OPTIONS} --binary-files=without-match --initial-tab --line-number"
 alias grep="grep ${GREP_OPTIONS}"
 alias egrep="egrep ${GREP_OPTIONS}"
 alias fgrep="fgrep ${GREP_OPTIONS}"
@@ -926,6 +959,7 @@ if +command.is emerge; then
 
     # Unconditional Gentoo Linux-specific aliases.
     alias em='emerge'
+    alias eq='equery'
     alias es='eselect'
     alias rcs='rc-service'
     alias rcu='rc-update'
