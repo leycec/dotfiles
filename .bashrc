@@ -475,6 +475,38 @@ if +command.is shnsplit; then
     }
 fi
 
+# ....................{ FUNCTIONS ~ command : image       }....................
+# If "pngquant" is in the current ${PATH}...
+#
+# Note that numerous PNG optimizers exist (e.g., "optipng", "pngcrush"), but
+# that "pngquant" is well-known to be both the fastest and yield the most
+# significant savings in filesize versus alternatives. See also:
+#     https://medium.com/open-pbs/experimenting-with-png-and-jpg-optimization-d1428e24928c
+#     https://willem.com/blog/2018-09-26_optimising-images-for-the-web-and-performance
+if +command.is pngquant; then
+    # str +image.optimize_png(str png_filename1, ...)
+    #
+    # Optimize each PNG-formatted image file with the passed filename into an
+    # output file whose basename excluding filetype is suffixed by "-optim"
+    # (e.g., "+image.optimize_png input1.png input2" produces
+    # "input1-optim.png" and "input2-optim.png"), where optimization implies
+    # lossy compression with no discernable reduction in subjective fidelity.
+    function +image.optimize_png() {
+        (( $# >= 1 )) || {
+            echo 'Expected one or more filenames.' 1>&2
+            return 1
+        }
+
+        # Dismantled, this is:
+        #
+        # * "--speed 1", maximizing resulting fidelity at a negligible cost in
+        #   time complexity. Since "pngquant" is already when known to be the
+        #   fastest PNG optimizer, this tradeoff is typically optimal.
+        # echo "Optimizing \"${png_src_filename}\" to \"${png_trg_filename}\"..."
+        command pngquant --ext '-optim.png' --speed 1 --verbose "${@}"
+    }
+fi
+
 # ....................{ FUNCTIONS ~ command : x.org       }....................
 # If "startx" is in the current ${PATH}...
 if +command.is startx; then
@@ -830,6 +862,7 @@ alias vdir="vdir ${LS_OPTIONS}"
 alias c='cp'
 alias d='date'
 alias f='fg'
+alias j='jobs'
 alias l='ls'
 alias m='mv'
 
