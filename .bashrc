@@ -2,7 +2,7 @@
 # ====================[ .bashrc                           ]====================
 #
 # --------------------( LICENSE                           )--------------------
-# Copyright 2008-2018 by Cecil Curry.
+# Copyright 2008-2020 by Cecil Curry.
 # See "LICENSE" for further details.
 #
 # --------------------( SYNOPSIS                          )--------------------
@@ -11,8 +11,8 @@
 # --------------------( USAGE                             )--------------------
 # This script transparently supports both bash and zsh for generality.
 #
-# For bash support, no further work is needed. For zsh support, either
-# Symlink this script to "~/.zshrc" or source this script from "~/.zshrc".
+# For bash support, no further work is required. For zsh support, either
+# symlink this script to "~/.zshrc" or source this script from "~/.zshrc".
 #
 # --------------------( CAVEATS                           )--------------------
 # This script is sourced by *ALL* interactive bash shells on startup, including
@@ -160,7 +160,7 @@ function +path.append() {
     export PATH
 }
 
-# ....................{ GLOBALS ~ path                    }....................
+# ....................{ GLOBALS ~ shell : path            }....................
 # Define globals *AFTER* defining core functions above (e.g., +command.is())
 # but *BEFORE* defining non-core functions below leveraging these globals.
 
@@ -181,7 +181,7 @@ function +path.append() {
 +path.append /usr/local/bin ~/bash ~/perl ~/zsh ~/py/miniconda3/bin
 # echo "PATH=${PATH} (after)"
 
-# ....................{ GLOBALS ~ history                 }....................
+# ....................{ GLOBALS ~ shell : history         }....................
 # Absolute path of the history file to which the current shell appends
 # previously run commands.
 export HISTFILE="${HOME}/.histfile"
@@ -192,38 +192,32 @@ export HISTSIZE=1000
 # Maximum filesize in kilobytes of this file.
 export HISTFILESIZE=2000
 
+# 1 if this is a login shell or the empty string otherwise. (Set below.)
+_IS_LOGIN=
+
 if [[ -n "${IS_ZSH}" ]]; then
     export SAVEHIST=1000
 
     # Append rather than overwrite the history file.
     setopt appendhistory
+
+    # Record whether this is a login shell or not.
+    [[ -o login ]] && _IS_LOGIN=1
 elif [[ -n "${IS_BASH}" ]]; then
     # Avoid appending both duplicate lines and space-prefixed lines.
     export HISTCONTROL=ignoreboth
 
     # Append rather than overwrite the history file.
     shopt -s histappend
-fi
 
-# ....................{ GLOBALS ~ other                   }....................
-# Basename of a command in the current ${PATH} acting as the preferred
-# command-line editor for this user.
-#
-# If "vim" is available, prefer "vim".
-if +command.is vim; then
-    export EDITOR=vim
-
-    # Alias "vim"-based commands to sane abbreviations.
-    +command.is vim && alias v='vim'
-    +command.is vimdiff && alias vd='vimdiff'
-# Else if "nano" is available, fallback to "nano" in silent desperation.
-elif +command.is nano; then export EDITOR=nano
+    # Record whether this is a login shell or not.
+    shopt -q login_shell && _IS_LOGIN=1
 fi
 
 # ....................{ GLOBALS ~ colour                  }....................
 # Conditionally enable colour support for all relevant "coreutils" commands.
 
-# 1 if the current shell supports color and the empty string otherwise.
+# 1 if the current shell supports color or the empty string otherwise.
 #
 # If the "tput" command exists *AND* reports that the current shell supports
 # color, assume this to mean that this shell complies with Ecma-48
@@ -269,6 +263,21 @@ if [[ -n "${_IS_COLOR}" ]]; then
             eval "$(dircolors --sh)"
         fi
     fi
+fi
+
+# ....................{ GLOBALS ~ command                 }....................
+# Basename of a command in the current ${PATH} acting as the preferred
+# command-line editor for this user.
+#
+# If "vim" is available, prefer "vim".
+if +command.is vim; then
+    export EDITOR=vim
+
+    # Alias "vim"-based commands to sane abbreviations.
+    +command.is vim && alias v='vim'
+    +command.is vimdiff && alias vd='vimdiff'
+# Else if "nano" is available, fallback to "nano" in silent desperation.
+elif +command.is nano; then export EDITOR=nano
 fi
 
 # ....................{ FUNCTIONS ~ dir                   }....................
@@ -1119,38 +1128,39 @@ fi
 # Customize "less" to behave sanely when piped non-text input files.
 #[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
-# ....................{ DAEMONS                           }....................
-# Conditionally spawn user-specific daemons at shell startup.
-
-# If the "keychain" command is in the current ${PATH} *AND*:
+# ....................{ LOGIN                             }....................
+# str +login()
 #
-# * If no "ssh-agent" daemon is currently running:
-#   * Spawn a long-running "ssh-agent" daemon.
-#   * Cache passphrases for typical user-specific private keys with this agent.
-# * Else, reuse the passphrases previously cached with this agent.
-if +command.is keychain; then
-    eval "$( \
-        keychain \
-        --eval --ignore-missing --quick --quiet \
-        ~/.ssh/id_dsa ~/.ssh/id_ecdsa ~/.ssh/id_ed25519 ~/.ssh/id_rsa \
-    )"
-fi
+# (Re)perform login shell startup logic. Specifically:
+#
+# * If the "keychain" command is in the current ${PATH} *AND*:
+#   * If no "ssh-agent" daemon is currently running:
+#     * Spawn a long-running "ssh-agent" daemon.
+#     * Cache passphrases for user-specific private keys with this agent.
+#   * Else, reuse the passphrases previously cached with this agent.
+# * Spawn a new user-specific "mpd" daemon if:
+#   * The "mpd" command is in the current ${PATH}.
+#   * A user-specific MPD configuration directory is found.
+#   * *NO* "mpd" daemon is currently running.
+function +login() {
+    if +command.is keychain; then
+        eval "$( \
+            keychain \
+            --eval --ignore-missing --quick --quiet \
+            ~/.ssh/id_dsa ~/.ssh/id_ecdsa ~/.ssh/id_ed25519 ~/.ssh/id_rsa \
+        )"
+    fi
 
-# If the "mpd" command is in the current ${PATH} *AND* no "mpd" daemon is
-# currently running...
-if +command.is mpd; then
-    # str +mpd()
-    #
-    # Spawn a new user-specific "mpd" daemon if a user-specific MPD
-    # configuration directory is found and *NO* "mpd" daemon is running.
-    function +mpd() {
+    # If the "mpd" command is in the current ${PATH} *AND* no "mpd" daemon is
+    # currently running...
+    if +command.is mpd; then
         # Absolute filename of the user-specific MPD configuration file if any
         # or the empty string otherwise, preferring "~/.mpd/mpd.conf" if that
         # file exists or falling back to "~/.config/mpd/mpd.conf" otherwise.
-        conf_filename=~/.mpd/mpd.conf
-        [[ -f "${conf_filename}" ]] || {
-            conf_filename=~/.config/mpd/mpd.conf
-            [[ -f "${conf_filename}" ]] || conf_filename=
+        mpd_conf_filename=~/.mpd/mpd.conf
+        [[ -f "${mpd_conf_filename}" ]] || {
+            mpd_conf_filename=~/.config/mpd/mpd.conf
+            [[ -f "${mpd_conf_filename}" ]] || mpd_conf_filename=
         }
 
         # If a user-specific MPD configuration directory was found and *NO*
@@ -1159,15 +1169,16 @@ if +command.is mpd; then
         # Note that testing the existence of a non-zero "${MPD_HOME}/pid" file
         # tested would be insufficient, as the location of that file is
         # configurable via "${MPD_HOME}/mpd.conf".
-        if [[ -n "${conf_filename}" ]] && ! +process.has_basename 'mpd'; then
-            echo 'Starting "mpd" from: '${conf_filename}
-            command mpd "${conf_filename}"
+        if [[ -n "${mpd_conf_filename}" ]] &&
+           ! +process.has_basename 'mpd'; then
+            echo 'Starting "mpd" from: '${mpd_conf_filename}
+            command mpd "${mpd_conf_filename}"
         fi
-    }
+    fi
+}
 
-    # Spawn a new user-specific "mpd" daemon if needed.
-    +mpd
-fi
+# If this is a login shell, (re)perform login shell startup logic.
+[[ "${_IS_LOGIN}" ]] && +login
 
 # ....................{ CLEANUP                           }....................
 # Export all variables defined above and referenced internally by aliases
@@ -1180,5 +1191,6 @@ unset \
     _GREP_COMMAND \
     _GREP_OPTIONS \
     _IS_COLOR \
+    _IS_LOGIN \
     _LS_OPTIONS \
     _MPD_CONF_FILENAME
