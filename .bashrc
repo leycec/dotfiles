@@ -160,23 +160,92 @@ function +path.append() {
     export PATH
 }
 
-# ....................{ COLOUR                            }....................
-# Enable colour support for all relevant "coreutils" commands *AFTER* defining
-# core functions above (e.g., +command.is()) but *BEFORE* defining non-core
-# functions below leveraging this support (e.g., ${COLOUR_OPTION}).
+# ....................{ GLOBALS ~ path                    }....................
+# Define globals *AFTER* defining core functions above (e.g., +command.is())
+# but *BEFORE* defining non-core functions below leveraging these globals.
+
+# Define the current ${PATH} (i.e., user-specific ":"-delimited list of the
+# absolute dirnames of all directories to locate command basenames relative to)
+# *BEFORE* performing any subsequent logic possibly expecting this ${PATH}.
+# Paths possibly containing commands include:
+#
+# * "/usr/local/bin", containing custom system-wide commands.
+# * "${HOME}/bash", containing Bash-specific scripts.
+# * "${HOME}/perl", containing Perl-specific scripts.
+# * "${HOME}/zsh", containing zsh-specific scripts.
+# * "${HOME}/py/miniconda3/bin", containing Miniconda3-specific commands. Note
+#   that appending (rather than prepending) this directory ensures system-wide
+#   commands (e.g., "python3") take precedence over Miniconda3-specific
+#   commands of the same basename.
+# echo "PATH=${PATH} (before)"
++path.append /usr/local/bin ~/bash ~/perl ~/zsh ~/py/miniconda3/bin
+# echo "PATH=${PATH} (after)"
+
+# ....................{ GLOBALS ~ history                 }....................
+# Absolute path of the history file to which the current shell appends
+# previously run commands.
+export HISTFILE="${HOME}/.histfile"
+
+# Maximum number of commands preserved by the history file.
+export HISTSIZE=1000
+
+# Maximum filesize in kilobytes of this file.
+export HISTFILESIZE=2000
+
+if [[ -n "${IS_ZSH}" ]]; then
+    export SAVEHIST=1000
+
+    # Append rather than overwrite the history file.
+    setopt appendhistory
+elif [[ -n "${IS_BASH}" ]]; then
+    # Avoid appending both duplicate lines and space-prefixed lines.
+    export HISTCONTROL=ignoreboth
+
+    # Append rather than overwrite the history file.
+    shopt -s histappend
+fi
+
+# ....................{ GLOBALS ~ other                   }....................
+# Basename of a command in the current ${PATH} acting as the preferred
+# command-line editor for this user.
+#
+# If "vim" is available, prefer "vim".
+if +command.is vim; then
+    export EDITOR=vim
+
+    # Alias "vim"-based commands to sane abbreviations.
+    +command.is vim && alias v='vim'
+    +command.is vimdiff && alias vd='vimdiff'
+# Else if "nano" is available, fallback to "nano" in silent desperation.
+elif +command.is nano; then export EDITOR=nano
+fi
+
+# ....................{ GLOBALS ~ colour                  }....................
+# Conditionally enable colour support for all relevant "coreutils" commands.
+
+# 1 if the current shell supports color and the empty string otherwise.
+#
+# If the "tput" command exists *AND* reports that the current shell supports
+# color, assume this to mean that this shell complies with Ecma-48
+# (i.e., ISO/IEC-6429). Note that, under zsh, similar logic is achievable by:
+#
+#     autoload colors zsh/terminfo
+#     [[ "$terminfo[colors]" -ge 8 ]] && _IS_COLOR=YES
+_IS_COLOR=
++command.is tput && tput setaf 1 >&/dev/null && _IS_COLOR=1
 
 # GNU-style long option unconditionally enabling color support in most modern
 # CLI commands, defaulting to the empty string (i.e., ignoring color support).
-COLOR_OPTION=
+_COLOR_OPTION=
 
 # If this shell supports color...
-if [[ -n "${IS_COLOR}" ]]; then
+if [[ -n "${_IS_COLOR}" ]]; then
     # Unconditionally enable color support regardless of context. A comparable
     # "--color=auto" option only conditionally enables colors if the current
     # command outputs to an interactive shell.  While *USUALLY* desirable, such
     # detection fails for the common case of outputting to a pipe (e.g.,
     # "less") outputting to an interactive shell.
-    COLOR_OPTION=' --color=always'
+    _COLOR_OPTION=' --color=always'
 
     # Configure "less" to preserve control characters and hence color codes.
     alias less='less --RAW-CONTROL-CHARS'
@@ -254,6 +323,34 @@ function +dir.list_subdirs_mtime_depth() {
         command sort --reverse |
         command cut --complement --fields=1 |
         command less
+}
+
+# ....................{ FUNCTIONS ~ process               }....................
+# bool +process.has_basename(str command_basename)
+#
+# Report success only if at least one process with the passed command basename
+# (i.e., basename of the command from which that process was invoked) is
+# currently running under any user.
+#
+# This function is strongly inspired by the following StackOverflow answer:
+#     https://askubuntu.com/a/988986/415719
+function +process.has_basename() {
+    (( $# == 1 )) || {
+        echo 'Expected one command basename.' 1>&2
+        return 1
+    }
+
+    # Dismantled, this is:
+    #
+    # * "ps ...", printing zero or more lines such that each line contains
+    #   exactly the passed basename for each process with that basename, where:
+    #   * "-o comm=" compacts each line of stdout to a single column containing
+    #     exactly that basename.
+    #   * "-C" matches only processes with that basename.
+    # * "grep -x", reporting success only if the prior "ps ..." command output
+    #   at least one line containing exactly that basename.
+    command ps -o comm= -C "${1}" 2>/dev/null |
+        command grep -x "${1}" >&/dev/null
 }
 
 # ....................{ FUNCTIONS ~ rc                    }....................
@@ -549,7 +646,7 @@ if +command.is xset; then
 
         # So it goes.
         echo 'Disabling X.org DPMS and DPMS-based screen blanking...'
-        command xset s off -dpms 
+        command xset s off -dpms
     }
 
 
@@ -565,7 +662,7 @@ if +command.is xset; then
 
         # Make it so.
         echo 'Enabling X.org DPMS and DPMS-based screen blanking...'
-        command xset s on -dpms 
+        command xset s on -dpms
     }
 fi
 
@@ -640,76 +737,6 @@ if [[ -d /usr/src/linux ]]; then
     }
 fi
 
-# ....................{ GLOBALS ~ path                    }....................
-# echo "PATH=${PATH} (before)"
-
-# Define the current ${PATH} (i.e., user-specific ":"-delimited list of the
-# absolute dirnames of all directories to locate command basenames relative to)
-# *BEFORE* performing any subsequent logic possibly expecting this ${PATH}.
-# Paths possibly containing commands include:
-#
-# * "/usr/local/bin", containing custom system-wide commands.
-# * "${HOME}/bash", containing Bash-specific scripts.
-# * "${HOME}/perl", containing Perl-specific scripts.
-# * "${HOME}/zsh", containing zsh-specific scripts.
-# * "${HOME}/py/miniconda3/bin", containing Miniconda3-specific commands. Note
-#   that appending (rather than prepending) this directory ensures system-wide
-#   commands (e.g., "python3") take precedence over Miniconda3-specific
-#   commands of the same basename.
-+path.append /usr/local/bin ~/bash ~/perl ~/zsh ~/py/miniconda3/bin
-
-# echo "PATH=${PATH} (after)"
-
-# ....................{ GLOBALS ~ history                 }....................
-# Absolute path of the history file to which the current shell appends
-# previously run commands.
-export HISTFILE="${HOME}/.histfile"
-
-# Maximum number of commands preserved by the history file.
-export HISTSIZE=1000
-
-# Maximum filesize in kilobytes of this file.
-export HISTFILESIZE=2000
-
-if [[ -n "${IS_ZSH}" ]]; then
-    export SAVEHIST=1000
-
-    # Append rather than overwrite the history file.
-    setopt appendhistory
-elif [[ -n "${IS_BASH}" ]]; then
-    # Avoid appending both duplicate lines and space-prefixed lines.
-    export HISTCONTROL=ignoreboth
-
-    # Append rather than overwrite the history file.
-    shopt -s histappend
-fi
-
-# ....................{ GLOBALS ~ other                   }....................
-# Basename of a command in the current ${PATH} acting as the preferred
-# command-line editor for this user.
-#
-# If "vim" is available, prefer "vim".
-if +command.is vim; then
-    export EDITOR=vim
-
-    # Alias "vim"-based commands to sane abbreviations.
-    +command.is vim && alias v='vim'
-    +command.is vimdiff && alias vd='vimdiff'
-# Else if "nano" is available, fallback to "nano" in silent desperation.
-elif +command.is nano; then export EDITOR=nano
-fi
-
-# 1 if the current shell supports color and the empty string otherwise.
-#
-# If the "tput" command exists *AND* reports that the current shell supports
-# color, assume this to mean that this shell complies with Ecma-48
-# (i.e., ISO/IEC-6429). Note that, under zsh, similar logic is achievable by:
-#
-#     autoload colors zsh/terminfo
-#     [[ "$terminfo[colors]" -ge 8 ]] && IS_COLOR=YES
-IS_COLOR=
-+command.is tput && tput setaf 1 >&/dev/null && IS_COLOR=1
-
 # ....................{ MODULES ~ zsh                     }....................
 # Lazily load zsh-specific modules (i.e., optional C-based extensions),
 # commonly defining useful functions and variables.
@@ -773,7 +800,7 @@ fi
 
 # ....................{ VARIABLES ~ prompt                }....................
 # If this shell supports color, define a colorful shell prompt.
-if [[ -n "${IS_COLOR}" ]]; then
+if [[ -n "${_IS_COLOR}" ]]; then
     if [[ -n "${IS_ZSH}" ]]; then
         # Dismantled, this is:
         #
@@ -845,17 +872,17 @@ alias mkdir='mkdir --parents'
 alias rm='rm --interactive --verbose'
 
 # Colour "grep"-like commands with options defined above.
-GREP_CORE_OPTIONS="--extended-regexp${COLOR_OPTION}"
-GREP_OPTIONS="${GREP_CORE_OPTIONS} --binary-files=without-match --initial-tab --line-number"
-alias grep="grep ${GREP_OPTIONS}"
-alias egrep="egrep ${GREP_OPTIONS}"
-alias fgrep="fgrep ${GREP_OPTIONS}"
+GREP_CORE_OPTIONS="--extended-regexp${_COLOR_OPTION}"
+_GREP_OPTIONS="${GREP_CORE_OPTIONS} --binary-files=without-match --initial-tab --line-number"
+alias grep="grep ${_GREP_OPTIONS}"
+alias egrep="egrep ${_GREP_OPTIONS}"
+alias fgrep="fgrep ${_GREP_OPTIONS}"
 
 # Configure "ls"-like commands with options defined above.
-LS_OPTIONS="--all --group-directories-first --human-readable${COLOR_OPTION}"
-alias ls="ls ${LS_OPTIONS}"
-alias dir="dir ${LS_OPTIONS}"
-alias vdir="vdir ${LS_OPTIONS}"
+_LS_OPTIONS="--all --group-directories-first --human-readable${_COLOR_OPTION}"
+alias ls="ls ${_LS_OPTIONS}"
+alias dir="dir ${_LS_OPTIONS}"
+alias vdir="vdir ${_LS_OPTIONS}"
 
 # ....................{ ALIASES ~ abbreviations           }....................
 # One-letter abbreviations for brave brevity.
@@ -948,16 +975,16 @@ fi
 #   recursive operation.
 # * "gri", aliased to this command passed the standard "-r" and "-i" options,
 #   performing case-insensitive recursive operation.
-for GREP_COMMAND in rg ag sift ack pt grep; do
+for _GREP_COMMAND in rg ag sift ack pt grep; do
     # If this command exists...
-    if +command.is "${GREP_COMMAND}"; then
+    if +command.is "${_GREP_COMMAND}"; then
         # Alias "g" to this command.
-        alias g="${GREP_COMMAND}"
+        alias g="${_GREP_COMMAND}"
 
         # If this command is ripgrep...
-        if [[ "${GREP_COMMAND}" == 'rg' ]]; then
+        if [[ "${_GREP_COMMAND}" == 'rg' ]]; then
             # Configure ripgrep.
-            alias rg="rg --heading --hidden --line-number --one-file-system${COLOR_OPTION}"
+            alias rg="rg --heading --hidden --line-number --one-file-system${_COLOR_OPTION}"
 
             # Alias "gr" to the same command as well. By design, ripgrep
             # *ALWAYS* operates recursively.
@@ -1092,19 +1119,54 @@ fi
 # Customize "less" to behave sanely when piped non-text input files.
 #[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
 
-# ....................{ CRYPTO                            }....................
-# If the "keychain" command exists:
+# ....................{ DAEMONS                           }....................
+# Conditionally spawn user-specific daemons at shell startup.
+
+# If the "keychain" command is in the current ${PATH} *AND*:
 #
 # * If no "ssh-agent" daemon is currently running:
 #   * Spawn a long-running "ssh-agent" daemon.
 #   * Cache passphrases for typical user-specific private keys with this agent.
 # * Else, reuse the passphrases previously cached with this agent.
-if hash keychain >&/dev/null; then
+if +command.is keychain; then
     eval "$( \
         keychain \
         --eval --ignore-missing --quick --quiet \
         ~/.ssh/id_dsa ~/.ssh/id_ecdsa ~/.ssh/id_ed25519 ~/.ssh/id_rsa \
     )"
+fi
+
+# If the "mpd" command is in the current ${PATH} *AND* no "mpd" daemon is
+# currently running...
+if +command.is mpd; then
+    # str +mpd()
+    #
+    # Spawn a new user-specific "mpd" daemon if a user-specific MPD
+    # configuration directory is found and *NO* "mpd" daemon is running.
+    function +mpd() {
+        # Absolute filename of the user-specific MPD configuration file if any
+        # or the empty string otherwise, preferring "~/.mpd/mpd.conf" if that
+        # file exists or falling back to "~/.config/mpd/mpd.conf" otherwise.
+        conf_filename=~/.mpd/mpd.conf
+        [[ -f "${conf_filename}" ]] || {
+            conf_filename=~/.config/mpd/mpd.conf
+            [[ -f "${conf_filename}" ]] || conf_filename=
+        }
+
+        # If a user-specific MPD configuration directory was found and *NO*
+        # "mpd" daemon is currently running, spawn a new such daemon.
+        #
+        # Note that testing the existence of a non-zero "${MPD_HOME}/pid" file
+        # tested would be insufficient, as the location of that file is
+        # configurable via "${MPD_HOME}/mpd.conf".
+        if [[ -n "${conf_filename}" ]] && ! +process.has_basename 'mpd'; then
+            echo 'Starting "mpd" from: '${conf_filename}
+            command mpd "${conf_filename}"
+        fi
+    }
+
+    # Spawn a new user-specific "mpd" daemon if needed.
+    +mpd
 fi
 
 # ....................{ CLEANUP                           }....................
@@ -1114,8 +1176,9 @@ export IS_BASH IS_ZSH XDG_RUNTIME_DIR
 
 # Prevent all remaining variables defined above from polluting the environment.
 unset \
-    GREP_COMMAND \
-    GREP_OPTIONS \
-    IS_COLOR \
-    LS_OPTIONS \
-    PATH_MINICONDA3
+    _COLOR_OPTION \
+    _GREP_COMMAND \
+    _GREP_OPTIONS \
+    _IS_COLOR \
+    _LS_OPTIONS \
+    _MPD_CONF_FILENAME

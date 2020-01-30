@@ -424,7 +424,6 @@ generate_win32_compatible_filenames = no
 #jump_to_now_playing_song_at_start = yes
 #
 #ask_before_clearing_playlists = yes
-ask_before_clearing_playlists = no
 #
 #clock_display_seconds = no
 #
@@ -450,7 +449,7 @@ ignore_leading_the = yes
 ## filtering lists. This takes an effect only if boost was compiled with ICU
 ## support.
 ##
-#ignore_diacritics = yes
+ignore_diacritics = yes
 #ignore_diacritics = no
 #
 #block_search_constraints_change_if_items_found = yes

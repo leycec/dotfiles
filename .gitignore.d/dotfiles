@@ -44,6 +44,8 @@
 !/.ipython
 !/.ipython/profile_default
 !/.ipython/profile_default/ipython_config.py
+!/.mpd
+!/.mpd/mpd.conf
 !/.ncmpcpp/
 !/.ncmpcpp/bindings
 !/.ncmpcpp/config
