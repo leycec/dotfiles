@@ -63,9 +63,6 @@
 !/bash/
 !/bash/xorg_init
 !/bash/xorg_start
-!/perl/
-!/perl/cp-pcre
-!/perl/mv-pcre
 
 # To avoid synchronization issues with the front-facing "github" branch,
 # whitelist all paths specific to this branch.

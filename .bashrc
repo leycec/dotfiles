@@ -171,15 +171,30 @@ function +path.append() {
 #
 # * "/usr/local/bin", containing custom system-wide commands.
 # * "${HOME}/bash", containing Bash-specific scripts.
-# * "${HOME}/perl", containing Perl-specific scripts.
 # * "${HOME}/zsh", containing zsh-specific scripts.
 # * "${HOME}/py/miniconda3/bin", containing Miniconda3-specific commands. Note
 #   that appending (rather than prepending) this directory ensures system-wide
 #   commands (e.g., "python3") take precedence over Miniconda3-specific
 #   commands of the same basename.
 # echo "PATH=${PATH} (before)"
-+path.append /usr/local/bin ~/bash ~/perl ~/zsh ~/py/miniconda3/bin
++path.append /usr/local/bin ~/bash ~/zsh ~/py/miniconda3/bin
 # echo "PATH=${PATH} (after)"
+
+# If CPAN is locally installed to a reasonably sane user-specific directory...
+if [[ -d ~/perl/cpan/bin ]]; then
+    # Append CPAN's script directory to the current ${PATH}.
+    +path.append ~/perl/cpan/bin
+
+    # Prepend CPAN's library directory to Perl's library path.
+    #
+    # Note these assignments resemble those emitted by the "cpan" command,
+    # refactored for generic applicability.
+    export PERL5LIB="${HOME}/perl/cpan/lib/perl5${PERL5LIB:+:${PERL5LIB}}"
+    export PERL_LOCAL_LIB_ROOT="${HOME}/perl/cpan${PERL_LOCAL_LIB_ROOT:+:${PERL_LOCAL_LIB_ROOT}}"
+    export PERL_MB_OPT="--install_base \"${HOME}/perl/cpan\""
+    export PERL_MM_OPT="INSTALL_BASE=\"${HOME}/perl/cpan\""
+    export MANPATH="${HOME}/perl/cpan/man${MANPATH:+:${MANPATH}}"
+fi
 
 # ....................{ GLOBALS ~ shell : history         }....................
 # Absolute path of the history file to which the current shell appends
@@ -269,15 +284,20 @@ fi
 # Basename of a command in the current ${PATH} acting as the preferred
 # command-line editor for this user.
 #
-# If "vim" is available, prefer "vim".
+# If "vim" is available...
 if +command.is vim; then
+    # Prefer "vim".
     export EDITOR=vim
 
     # Alias "vim"-based commands to sane abbreviations.
     +command.is vim && alias v='vim'
     +command.is vimdiff && alias vd='vimdiff'
+
+    # Alias GNU info to leverage vi key bindings by default.
+    alias info='info --vi-keys'
 # Else if "nano" is available, fallback to "nano" in silent desperation.
-elif +command.is nano; then export EDITOR=nano
+elif +command.is nano; then
+    export EDITOR=nano
 fi
 
 # ....................{ FUNCTIONS ~ dir                   }....................
@@ -912,6 +932,7 @@ alias cm='chmod'
 alias co='chown'
 alias cr='cp -R'
 alias gi='git'
+alias in='info'
 alias le='less'
 alias ll='l -l'
 alias lr='ll -R | less'
@@ -1073,12 +1094,18 @@ fi
 +command.is audacity    && alias aud='audacity &!'
 +command.is calibre     && alias cb='calibre &!'
 +command.is chromium    && alias ch='chromium -incognito &!'
-+command.is deluge-gtk  && alias de='deluge-gtk &!'
++command.is clementine  && alias cl='clementine &!'
++command.is deadbeef    && alias de='deadbeef &!'
++command.is deluge-gtk  && alias dg='deluge-gtk &!'
 +command.is fbreader    && alias fb='fbreader &!'
 +command.is firefox     && alias ff='firefox &!'
 +command.is geeqie      && alias gq='geeqie &!'
++command.is lutris      && alias lu='lutris &!'
++command.is playonlinux && alias pol='playonlinux &!'
 +command.is qtcreator   && alias qtc='qtcreator &!'
++command.is rhythmbox   && alias hh='rhythmbox &!'
 +command.is simple-scan && alias sc='simple-scan &!'
++command.is strawberry  && alias sb='strawberry &!'
 +command.is torbrowser-launcher && alias tb='torbrowser-launcher &!'
 
 # ....................{ COMPLETIONS                       }....................
@@ -1151,9 +1178,11 @@ function +login() {
         )"
     fi
 
+    #FIXME: Currently disabled by "false &&".
     # If the "mpd" command is in the current ${PATH} *AND* no "mpd" daemon is
     # currently running...
-    if +command.is mpd; then
+    if false && +command.is mpd; then
+    # if +command.is mpd; then
         # Absolute filename of the user-specific MPD configuration file if any
         # or the empty string otherwise, preferring "~/.mpd/mpd.conf" if that
         # file exists or falling back to "~/.config/mpd/mpd.conf" otherwise.
