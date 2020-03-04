@@ -40,6 +40,9 @@
 !/.audacity-data/Audacity-keys.xml
 !/.bash_profile
 !/.bashrc
+!/.config
+!/.config/fontconfig
+!/.config/fontconfig/fonts.conf
 !/.gitconfig
 !/.ipython
 !/.ipython/profile_default

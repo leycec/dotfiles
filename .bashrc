@@ -281,12 +281,9 @@ if [[ -n "${_IS_COLOR}" ]]; then
 fi
 
 # ....................{ GLOBALS ~ command                 }....................
-# Basename of a command in the current ${PATH} acting as the preferred
-# command-line editor for this user.
-#
-# If "vim" is available...
+# If the "vim" command is in the current ${PATH}...
 if +command.is vim; then
-    # Prefer "vim".
+    # Prefer "vim" as the standard command-line editor.
     export EDITOR=vim
 
     # Alias "vim"-based commands to sane abbreviations.
@@ -295,9 +292,15 @@ if +command.is vim; then
 
     # Alias GNU info to leverage vi key bindings by default.
     alias info='info --vi-keys'
-# Else if "nano" is available, fallback to "nano" in silent desperation.
+# Else if the "nano" command is in the current ${PATH}, fallback to this.
 elif +command.is nano; then
     export EDITOR=nano
+fi
+
+# If the Gentoo-specific "g-cpan" command is in the current ${PATH} *AND* a
+# third-party Gentoo overlay exists, notify this command of this overlay.
+if +command.is g-cpan && [[ -d ~/bash/raiagent ]]; then
+    export GCPAN_OVERLAY=~/bash/raiagent
 fi
 
 # ....................{ FUNCTIONS ~ dir                   }....................
@@ -714,6 +717,16 @@ if +command.is xrandr; then
         command xrandr --output DVI-I-0 --mode 1920x1080 --rate 60
     }
 fi
+
+# ....................{ FUNCTIONS ~ command : gui         }....................
+# For each GUI command invoked with CLI arguments in the current ${PATH},
+# define an alias-like function passing those arguments to that command.
++command.is evince && function ev() {
+    command evince "${@}" &!
+}
++command.is okular && function ok() {
+    command okular "${@}" &!
+}
 
 # ....................{ FUNCTIONS ~ linux : kernel        }....................
 # Functions conditionally dependent upon the Linux platform.
