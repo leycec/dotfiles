@@ -180,8 +180,23 @@ function +path.append() {
 +path.append /usr/local/bin ~/bash ~/zsh ~/py/miniconda3/bin
 # echo "PATH=${PATH} (after)"
 
-# If CPAN is locally installed to a reasonably sane user-specific directory...
-if [[ -d ~/perl/cpan/bin ]]; then
+# ....................{ GLOBALS ~ shell : path ~ perl     }....................
+# If the current user is *NOT* the superuser, sanitize the current shell
+# environment of the Perl-specific globals exported below. Preserving these
+# globals as the superuser induces badness elsewhere. For example, attempting
+# to emerge Perl packages on Gentoo as the superuser with these globals:
+#
+#     * perl-module.eclass: Suspicious environment values found.
+#     *     PERL_MM_OPT="INSTALL_BASE="/home/leycec/perl/cpan""
+#     *     PERL5LIB="/home/leycec/perl/cpan/lib/perl5:/home/leycec/perl/cpan/lib/perl5"
+#     *     PERL_MB_OPT="--install_base "/home/leycec/perl/cpan""
+#     * Your environment settings may lead to undefined behavior and/or build failures.
+#     * ERROR: dev-perl/Text-Template-1.530.0::gentoo failed (configure phase):
+#     *   Please fix your environment ( ~/.bashrc, package.env, ... ), see above for details.
+if (( EUID == 0 )); then
+    unset PERL5LIB PERL_LOCAL_LIB_ROOT PERL_MB_OPT PERL_MM_OPT
+# Else if CPAN is locally installed to a mostly sane user-specific directory...
+elif [[ -d ~/perl/cpan/bin ]]; then
     # Append CPAN's script directory to the current ${PATH}.
     +path.append ~/perl/cpan/bin
 
@@ -189,7 +204,7 @@ if [[ -d ~/perl/cpan/bin ]]; then
     #
     # Note these assignments resemble those emitted by the "cpan" command,
     # refactored for generic applicability.
-    export PERL5LIB="${HOME}/perl/cpan/lib/perl5${PERL5LIB:+:${PERL5LIB}}"
+    export PERL5LIB="${HOME}/perl/cpan/lib/perl5"
     export PERL_LOCAL_LIB_ROOT="${HOME}/perl/cpan${PERL_LOCAL_LIB_ROOT:+:${PERL_LOCAL_LIB_ROOT}}"
     export PERL_MB_OPT="--install_base \"${HOME}/perl/cpan\""
     export PERL_MM_OPT="INSTALL_BASE=\"${HOME}/perl/cpan\""
@@ -975,6 +990,7 @@ alias lram='+dir.list_subdirs_mtime_depth ~/pub/audio/metal 3'
 +command.is links && alias li='links'
 +command.is ncdu && alias du='ncdu'
 +command.is ncmpcpp && alias n='ncmpcpp'  # the command whose name nobody knows
++command.is perldoc && alias poc='perldoc'
 +command.is ping && alias pi='ping'
 
 # CLI-specific one-to-many abbreviations.
@@ -1077,11 +1093,12 @@ if +command.is emerge; then
     alias emsw='emerge --sync; emw'
 
     # Conditional Gentoo Linux-specific aliases.
-    +command.is dispatch-conf && alias dc='dispatch-conf'
+    +command.is dispatch-conf && alias dic='dispatch-conf'
     +command.is repoman && alias re='repoman'
 
-    # Configure "eix" to pipe ANSI color sequences to "less".
-    +command.is eix && alias eix='eix --force-color'
+    # If this shell supports color, force "eix" to unconditionally emit ANSI
+    # color sequences (even when piped to "less").
+    +command.is eix && [[ -n "${_IS_COLOR}" ]] && alias eix='eix --force-color'
 fi
 
 # ....................{ ALIASES ~ cli : shell             }....................
@@ -1114,6 +1131,7 @@ fi
 +command.is firefox     && alias ff='firefox &!'
 +command.is geeqie      && alias gq='geeqie &!'
 +command.is lutris      && alias lu='lutris &!'
++command.is nicotine    && alias nt='nicotine &!'
 +command.is playonlinux && alias pol='playonlinux &!'
 +command.is qtcreator   && alias qtc='qtcreator &!'
 +command.is rhythmbox   && alias hh='rhythmbox &!'

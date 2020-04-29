@@ -278,6 +278,7 @@
 
 ##
 #c.InteractiveShell.xmode = 'Context'
+c.InteractiveShell.xmode = 'Plain'
 
 #------------------------------------------------------------------------------
 # TerminalInteractiveShell(InteractiveShell) configuration
