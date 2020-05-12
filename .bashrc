@@ -319,6 +319,21 @@ if +command.is g-cpan && [[ -d ~/bash/raiagent ]]; then
 fi
 
 # ....................{ FUNCTIONS ~ dir                   }....................
+# str +dir.list_recursive(str dirname1, ...)
+#
+# Recursively list all transitive subdirectories of all directories with the
+# passed absolute or relative dirnames.
+function +dir.list_recursive() {
+    (( $# >= 1 )) || {
+        echo 'Expected one or more dirnames.' 1>&2
+        return 1
+    }
+
+    # Make it so, ensign.
+    ll -R "${@}" | command less
+}
+
+
 # str +dir.list_subdirs_mtime(str dirname)
 #
 # Recursively list all transitive subdirectories of the directory with the
@@ -963,7 +978,7 @@ alias gi='git'
 alias in='info'
 alias le='less'
 alias ll='l -l'
-alias lr='ll -R | less'
+alias lr='+dir.list_recursive'
 alias md='mkdir'
 alias mo='mount'
 alias rd='rmdir'
@@ -1131,7 +1146,7 @@ fi
 +command.is firefox     && alias ff='firefox &!'
 +command.is geeqie      && alias gq='geeqie &!'
 +command.is lutris      && alias lu='lutris &!'
-+command.is nicotine    && alias nt='nicotine &!'
++command.is nicotine    && alias ni='nicotine &!'
 +command.is playonlinux && alias pol='playonlinux &!'
 +command.is qtcreator   && alias qtc='qtcreator &!'
 +command.is rhythmbox   && alias hh='rhythmbox &!'
