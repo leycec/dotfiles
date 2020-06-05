@@ -28,14 +28,6 @@
     path = ~/.gitconfig.d/user.cfg
 
 # ....................{ OTHER                             }....................
-[push]
-	default = current
-[branch]
-    autosetuprebase = always
-[branch "master"]
-    rebase = true
-[pull]
-    rebase = true
 [alias]
     a = add
     aa = add --all
@@ -59,14 +51,27 @@
     sh = stash
     st = status
     t = tag
+[branch]
+    autosetuprebase = always
+[branch "master"]
+    rebase = true
+[color]
+    ui = auto
+[commit]
+    # Allow commit messages to contain lines prefixed by "#" characters (e.g.,
+    # Markdown headers) *WITHOUT* erroneously treating those lines as ignorable
+    # comments and thus implicitly removing those lines.
+    cleanup = scissors
+[core]
+    editor = vim
+    pager = less -FRSX
+[pull]
+    rebase = true
+[push]
+    default = current
+[rebase]
+    stat = true
 [rerere]
     enabled = true
 [status]
     showuntrackedfiles = all
-[rebase]
-    stat = true
-[color]
-    ui = auto
-[core]
-	editor = vim
-    pager = less -FRSX
