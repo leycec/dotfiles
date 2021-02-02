@@ -67,6 +67,8 @@
 [core]
     editor = vim
     pager = less -FRSX
+[init]
+    defaultBranch = main
 [pull]
     rebase = true
 [push]

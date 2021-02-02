@@ -336,7 +336,7 @@ function +dir.list_recursive() {
     }
 
     # Make it so, ensign.
-    ll -R "${@}" | command less
+    ls -lR "${@}" | command less
 }
 
 
@@ -825,6 +825,32 @@ fi
     command okular "${@}" &!
 }
 
+# ....................{ FUNCTIONS ~ linux : grub          }....................
+# Functions conditionally dependent upon the GRUB2 boot loader.
+
+# void +grub.install()
+#
+# Install the current GRUB2 configuration to the appropriate partition.
++command.is grub-mkconfig && function +grub.install() {
+    (( $# == 0 )) || {
+        echo 'Expected no arguments.' 1>&2
+        return 1
+    }
+
+    # If the current user is *NOT* the superuser, fail.
+    (( EUID == 0 )) || {
+        echo '"${USER}" not root.' 1>&2
+        return 1
+    }
+
+    echo 'Mounting boot partition...'
+    mount /boot
+
+    echo
+    echo '(Re)configuring GRUB2...'
+    grub-mkconfig -o /boot/grub/grub.cfg
+}
+
 # ....................{ FUNCTIONS ~ linux : kernel        }....................
 # Functions conditionally dependent upon the Linux platform.
 
@@ -837,8 +863,14 @@ if [[ -d /usr/src/linux ]]; then
     # compilation, copy this tarball into the boot directory, and configure
     # GRUB2 to load this tarball by default.
     function +kernel() {
-        (( $# >= 0 )) || {
+        (( $# == 0 )) || {
             echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        # If the current user is *NOT* the superuser, fail.
+        (( EUID == 0 )) || {
+            echo '"${USER}" not root.' 1>&2
             return 1
         }
 
@@ -852,24 +884,27 @@ if [[ -d /usr/src/linux ]]; then
         # Change to the directory defining the current kernel.
         pushd /usr/src/linux
 
+        echo 'Mounting boot partition...'
+        mount /boot
+
         echo '(Re)compiling kernel...'
-        sudo make -j3
+        make -j3
 
         echo
         echo '(Re)compiling kernel modules (first-party)...'
-        sudo make -j3 modules_install
+        make -j3 modules_install
 
         echo
         echo '(Re)compiling kernel modules (third-party)...'
-        sudo emerge @module-rebuild
+        emerge @module-rebuild
 
         echo
         echo '(Re)installing kernel...'
-        sudo make install
+        make install
 
+        # Install the current GRUB2 configuration to the appropriate partition.
         echo
-        echo '(Re)configuring GRUB2...'
-        sudo grub-mkconfig -o /boot/grub/grub.cfg
+        +grub.install
 
         # Revert to the prior directory.
         popd
@@ -1069,6 +1104,7 @@ alias lram='+dir.list_subdirs_mtime_depth ~/pub/audio/metal 3'
 +command.is alsamixer && alias am='alsamixer'
 +command.is fzf && alias fz='fzf'
 +command.is htop && alias ht='htop'
++command.is ipython3 && alias ipy='ipython3'
 +command.is links && alias li='links'
 +command.is ncdu && alias du='ncdu'
 +command.is ncmpcpp && alias n='ncmpcpp'  # the command whose name nobody knows
@@ -1217,11 +1253,13 @@ fi
 +command.is deluge-gtk  && alias dg='deluge-gtk &!'
 +command.is fbreader    && alias fb='fbreader &!'
 +command.is firefox     && alias ff='firefox &!'
++command.is filelight   && alias fl='filelight &!'
 +command.is geeqie      && alias gq='geeqie &!'
 +command.is lutris      && alias lu='lutris &!'
 +command.is nicotine    && alias ni='nicotine &!'
 +command.is playonlinux && alias pol='playonlinux &!'
 +command.is qtcreator   && alias qtc='qtcreator &!'
++command.is retroarch   && alias ra='retroarch &!'
 +command.is rhythmbox   && alias hh='rhythmbox &!'
 +command.is simple-scan && alias sc='simple-scan &!'
 +command.is strawberry  && alias sb='strawberry &!'
@@ -1296,7 +1334,7 @@ function +login() {
     if +command.is keychain; then
         eval "$( \
             keychain \
-            --eval --ignore-missing --quick --quiet \
+            --eval --ignore-missing --quick \
             ~/.ssh/id_dsa ~/.ssh/id_ecdsa ~/.ssh/id_ed25519 ~/.ssh/id_rsa \
         )"
     fi

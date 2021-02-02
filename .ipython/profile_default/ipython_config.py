@@ -29,7 +29,9 @@
 #c.InteractiveShellApp.exec_files = []
 
 ## lines of code to run at IPython startup.
-#c.InteractiveShellApp.exec_lines = []
+# Enable Python >= 3.9-style annotations by default. Sadly, this is largely
+# useless, as these annotations are only available from within type hints.
+c.InteractiveShellApp.exec_lines = ['from __future__ import annotations',]
 
 ## A list of dotted module names of IPython extensions to load.
 #c.InteractiveShellApp.extensions = []
