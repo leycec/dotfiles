@@ -318,6 +318,12 @@ if +command.is g-cpan && [[ -d ~/bash/raiagent ]]; then
     export GCPAN_OVERLAY=~/bash/raiagent
 fi
 
+# ....................{ GLOBALS ~ command                 }....................
+# Gentoo developer-specific git-formatted username effectively required by all
+# Gentoo repositories when submitting pull requests (PRs). See also:
+#     https://github.com/gentoo/sci/blob/master/CONTRIBUTING.md
+export ECHANGELOG_USER="Cecil Curry <leycec@gmail.com>"
+
 # ....................{ FUNCTIONS ~ dir                   }....................
 # str +dir.list_recursive(str dirname1, ...)
 #
@@ -635,6 +641,67 @@ if +command.is shnsplit; then
 fi
 
 # ....................{ FUNCTIONS ~ command : image       }....................
+#FIXME: Create similar ImageMagick-based commands for:
+#* Image conversion + reduction: e.g.,
+#     $ convert -resize 50% 0.jpg 0.png  # halve pixel size, preserving aspect ratio
+
+# If ImageMagick's "mogrify" command is in the current ${PATH}...
+if +command.is mogrify; then
+    # str +image.compact(str src_filename, int trg_width)
+    #
+    # Compact eh image file with the passed filename of filetype supported by
+    # ImageMagick into an output file whose basename excluding filetype is
+    # prefixed by "compact-" (e.g., "+image.compact input1.png input2.png"
+    # produces "compact-input1.png" and "compact-input2.png") with the target
+    # pixel width, where compaction implies a significant reduction in both
+    # size and filesize with no discernable reduction in subjective fidelity
+    # while preserving aspect ratio.
+    #
+    # Note that this file's existing pixel width may be easily inspected with:
+    #     $ file "${src_filename}"
+    #
+    # This function is strongly inspired by Dave Newton's seminal blog article
+    # "Efficient Image Resizing With ImageMagick," a phenomenal effort derived
+    # by iterative maximization of image reduction quality as objectively
+    # measured by structural dissimilarity (DSSIM):
+    #     https://www.smashingmagazine.com/2015/06/efficient-image-resizing-with-imagemagick
+    function +image.compact() {
+        (( $# == 2 )) || {
+            echo 'Expected one filename and one target width.' 1>&2
+            return 1
+        }
+        local src_filename="${1}" trg_width="${2}"
+
+        # Derive this target filename from this source filename.
+        trg_filename="$(dirname "${src_filename}")/compact-$(basename "${src_filename}")"
+
+        # Copy this filename to the expected target filename, as the
+        # "mogrify" command only works in-place and thus destructively.
+        cp -i "${src_filename}" "${trg_filename}"
+
+        # Compact this target file.
+        echo "Compacting \"${src_filename}\" to \"${trg_filename}\"..."
+        # command mogrify -resize 75% "${trg_filename}"
+        command mogrify \
+            -filter Triangle \
+            -define filter:support=2 \
+            -thumbnail "${trg_width}" \
+            -unsharp '0.25x0.25+8+0.065' \
+            -dither None \
+            -posterize 136 \
+            -quality 82 \
+            -define jpeg:fancy-upsampling=off \
+            -define png:compression-filter=5 \
+            -define png:compression-level=9 \
+            -define png:compression-strategy=1 \
+            -define png:exclude-chunk=all \
+            -interlace line \
+            -colorspace sRGB \
+            -strip \
+            "${trg_filename}"
+    }
+fi
+
 # If "pngquant" is in the current ${PATH}...
 #
 # Note that numerous PNG optimizers exist (e.g., "optipng", "pngcrush"), but
@@ -643,16 +710,16 @@ fi
 #     https://medium.com/open-pbs/experimenting-with-png-and-jpg-optimization-d1428e24928c
 #     https://willem.com/blog/2018-09-26_optimising-images-for-the-web-and-performance
 if +command.is pngquant; then
-    # str +image.optimize_png(str png_filename1, ...)
+    # str +png.optimize(str png_filename1, ...)
     #
     # Optimize each PNG-formatted image file with the passed filename into an
     # output file whose basename excluding filetype is suffixed by "-optim"
-    # (e.g., "+image.optimize_png input1.png input2" produces
-    # "input1-optim.png" and "input2-optim.png"), where optimization implies
-    # lossy compression with no discernable reduction in subjective fidelity.
-    function +image.optimize_png() {
+    # (e.g., "+png.optimize input1.png input2.png" produces "input1-optim.png"
+    # and "input2-optim.png"), where optimization implies lossy compression
+    # with no discernable reduction in subjective fidelity.
+    function +png.optimize() {
         (( $# >= 1 )) || {
-            echo 'Expected one or more filenames.' 1>&2
+            echo 'Expected one or more PNG filenames.' 1>&2
             return 1
         }
 
@@ -1102,7 +1169,13 @@ if +command.is emerge; then
     #
     # * All locally installed packages with available updates.
     # * All locally installed packages requiring obsolete preserved libraries.
-    alias emw='emerge -uDvN @world && emerge @preserved-rebuild'
+    alias emw='emerge \
+        --deep \
+        --newrepo \
+        --newuse \
+        --update \
+        --verbose \
+        @world && emerge @preserved-rebuild'
 
     # Alias "emsw" to update both Portage *AND* all locally installed packages.
     alias emsw='emerge --sync; emw'
@@ -1216,6 +1289,10 @@ fi
 #   * A user-specific MPD configuration directory is found.
 #   * *NO* "mpd" daemon is currently running.
 function +login() {
+    # Note that the current passphrase accepted by any private key can be
+    # trivially validated manually by passing that key to the OpenSSH
+    # "ssh-add" command: e.g.,
+    #     $ ssh-add ~/.ssh/id_rsa
     if +command.is keychain; then
         eval "$( \
             keychain \
