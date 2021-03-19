@@ -434,6 +434,7 @@ function +rc() {
 
     #FIXME: Generalize to source the current script without hardcoding. Under
     #Bash, the absolute filename of this script is "${BASH_SOURCE[0]}".
+    echo "Resourcing \"${HOME}/.bashrc\"..."
     source ~/.bashrc
 }
 
@@ -677,19 +678,26 @@ if +command.is mogrify; then
 
         # Copy this filename to the expected target filename, as the
         # "mogrify" command only works in-place and thus destructively.
+        echo "Compacting \"${src_filename}\" to \"${trg_filename}\"..."
         cp -i "${src_filename}" "${trg_filename}"
 
-        # Compact this target file.
-        echo "Compacting \"${src_filename}\" to \"${trg_filename}\"..."
-        # command mogrify -resize 75% "${trg_filename}"
+        # Compact this target file. Note this pipeline diverges from that
+        # originally given by Dave Newton above as follows:
+        # * "-filter Triangle" is intentionally *NOT* passed, as this filter
+        #   imposes a significant Gaussian blur.
+        # * "-quality 82" is intentionally *NOT* passed, as this quality
+        #   reduction is perceptible to the human eye.
+        # * "-strip" is intentionally *NOT* passed, as this option
+        #   *DRAMATICALLY* reduces quality for photographs with embedded colour
+        #   profiles. Since photographs captured by mobile devices embed colour
+        #   profiles *AND* since mobile devices now account for most
+        #   photographs, this option effectively destroys photographs.
         command mogrify \
-            -filter Triangle \
-            -define filter:support=2 \
             -thumbnail "${trg_width}" \
+            -define filter:support=2 \
             -unsharp '0.25x0.25+8+0.065' \
             -dither None \
             -posterize 136 \
-            -quality 82 \
             -define jpeg:fancy-upsampling=off \
             -define png:compression-filter=5 \
             -define png:compression-level=9 \
@@ -697,7 +705,6 @@ if +command.is mogrify; then
             -define png:exclude-chunk=all \
             -interlace line \
             -colorspace sRGB \
-            -strip \
             "${trg_filename}"
     }
 fi
