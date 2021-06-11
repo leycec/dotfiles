@@ -39,7 +39,7 @@
     cp = cherry-pick
     d = diff
     di = diff
-    l = log
+    l = log -m --numstat
     ls = ls-files
     pl = pull
     ps = push

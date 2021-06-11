@@ -1069,6 +1069,7 @@ alias vdir="vdir ${_LS_OPTIONS}"
 # One-letter abbreviations for brave brevity.
 alias c='cp'
 alias d='date'
+alias e='echo'
 alias f='fg'
 alias j='jobs'
 alias l='ls'
@@ -1208,6 +1209,10 @@ if +command.is emerge; then
     alias rcs='rc-service'
     alias rcu='rc-update'
 
+    # Alias "emnocc" to run the "emerge" command with "ccache"-based caching
+    # temporarily disabled, for packages failing under that caching.
+    alias emnocc='FEATURES="-ccache" emerge'
+
     # Alias "emw" to update the following *WITHOUT* updating Portage first:
     #
     # * All locally installed packages with available updates.
@@ -1247,6 +1252,48 @@ elif [[ -n "${IS_BASH}" ]]; then
     alias wh='type -a'
     alias print='echo'
 fi
+
+# ....................{ ALIASES ~ daemon                  }....................
+# Daemon-specific abbreviations, typically suffixed by "&!" to permit
+# background daemons to be spawned in a detached manner from the current shell.
+
+# Jupyter Notebook. Associating notebooks with specific Python interpreters and
+# interpreter versions (or "kernels" in Jupyter jargon) is non-trivial.
+#
+# First, there exists a one-to-many mapping between each notebook and each
+# kernel. Each notebook is associated with exactly one kernel at creation time;
+# after creation, that association may be modified via the "Kernel" -> "Change
+# kernel" menu item.
+#
+# Second, kernels are both created and configured with JSON-formatted
+# configuration files in the following directories:
+# * "/usr/share/jupyter/kernels", the system-wide kernel directory.
+# * "~/.local/share/jupyter/kernels", the user-specific kernel directory.
+#
+# The latter takes precedence over the former. The basename of each
+# subdirectory in each of these directories is the name of an available kernel.
+# Ergo:
+# * Deleting a kernel requires deleting all subdirectories whose basename is
+#   the name of that kernel from all of these directories.
+# * Creating a kernel requires creating a new subdirectory whose basename is
+#   the name of that kernel in one or more of these directories.
+#
+# Third, each kernel is configured via the "kernel.json" file in its
+# subdirectory of these directories.
+#
+# Fourth, the ambiguous "python3" kernel should typically be avoided. Why?
+# Because that kernel is configured by the
+# "/usr/share/jupyter/kernels/python3/kernel.json" file to refer to the most
+# recent CPython version installed on the local machine -- which rarely
+# coincides with the contents of "/etc/python-exec/python-exec.conf". Instead,
+# consider creating version-specific Python kernels for disambiguity.
+#
+# Fifth, Jupyter should typically be run as a non-superuser rather than the
+# superuser. Why? Beyond the obvious security concerns, the superuser is
+# unlikely to have a sane "~/.local/share/jupyter/kernels" directory, in which
+# case the only kernels available will be the default system-wide kernels
+# (e.g., "python3") -- which should typically be avoided as above.
++command.is jupyter-notebook && alias jn='jupyter-notebook &!'
 
 # ....................{ ALIASES ~ gui                     }....................
 # GUI-specific abbreviations, typically suffixed by "&!" to permit windowed
