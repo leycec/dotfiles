@@ -393,6 +393,41 @@ function +dir.list_subdirs_mtime_depth() {
         command less
 }
 
+
+# str +dir.print_subsubsubdirname_random()
+#
+# Print the relative dirname of a randomly selected subsubsubdirectory (i.e.,
+# randomly selected subdirectory of a randomly selected subdirectory of a
+# randomly selected subdirectory) of the current working directory if any *OR*
+# the empty string otherwise.
+function +dir.print_subsubsubdirname_random() {
+    (( $# == 0 )) || {
+        echo 'Expected no arguments.' 1>&2
+        return 1
+    }
+
+    # Relative dirname of a randomly selected subdirectory of the current
+    # working directory.
+    local SUBDIRNAME="$(command ls | command shuf -n 1)"
+
+    # Basename of a randomly selected subsubdirectory of that subdirectory.
+    local SUBSUBBASENAME="$(command ls "${SUBDIRNAME}" | command shuf -n 1)"
+
+    # Relative dirname of this subsubdirectory.
+    local SUBSUBDIRNAME="${SUBDIRNAME}/${SUBSUBBASENAME}"
+
+    # Basename of a randomly selected subsubsubdirectory of that
+    # subsubdirectory.
+    local SUBSUBSUBBASENAME="$(\
+        command ls "${SUBSUBDIRNAME}" | command shuf -n 1)"
+
+    # Relative dirname of this subsubsubdirectory.
+    local SUBSUBSUBDIRNAME="${SUBSUBDIRNAME}/${SUBSUBSUBBASENAME}"
+
+    # Print this dirname.
+    print "${SUBSUBSUBDIRNAME}"
+}
+
 # ....................{ FUNCTIONS ~ process               }....................
 # bool +process.has_basename(str command_basename)
 #
@@ -650,7 +685,7 @@ fi
 if +command.is mogrify; then
     # str +image.compact(str src_filename, int trg_width)
     #
-    # Compact eh image file with the passed filename of filetype supported by
+    # Compact the image file with the passed filename of filetype supported by
     # ImageMagick into an output file whose basename excluding filetype is
     # prefixed by "compact-" (e.g., "+image.compact input1.png input2.png"
     # produces "compact-input1.png" and "compact-input2.png") with the target
@@ -1074,6 +1109,7 @@ alias f='fg'
 alias j='jobs'
 alias l='ls'
 alias m='mv'
+alias t='touch'
 
 # Note that print() is a builtin under zsh but *NOT* bash, but that an alias
 # defined below simply aliases "print" to "echo" under bash.
@@ -1116,6 +1152,7 @@ alias lram='+dir.list_subdirs_mtime_depth ~/pub/audio/metal 3'
 +command.is links && alias li='links'
 +command.is ncdu && alias du='ncdu'
 +command.is ncmpcpp && alias n='ncmpcpp'  # the command whose name nobody knows
++command.is jupyter-notebook && alias nb='python3.9 -m notebook'
 +command.is perldoc && alias poc='perldoc'
 +command.is ping && alias pi='ping'
 
@@ -1203,7 +1240,9 @@ if +command.is emerge; then
     alias rc-update='rc-update --verbose'
 
     # Unconditional Gentoo Linux-specific aliases.
+    alias eb='ebuild'
     alias em='emerge'
+    alias em1='emerge --oneshot'
     alias eq='equery'
     alias es='eselect'
     alias rcs='rc-service'
@@ -1229,7 +1268,8 @@ if +command.is emerge; then
     alias emsw='emerge --sync; emw'
 
     # Conditional Gentoo Linux-specific aliases.
-    +command.is dispatch-conf && alias dic='dispatch-conf'
+    +command.is dispatch-conf && alias di='dispatch-conf'
+    +command.is pkgcheck && alias pcs='pkgcheck scan'
     +command.is repoman && alias re='repoman'
 
     # If this shell supports color, force "eix" to unconditionally emit ANSI
@@ -1300,7 +1340,6 @@ fi
 # applications to be spawned in a detached manner from the current shell.
 +command.is assistant   && alias ass='assistant &!'      # Don't judge me.
 +command.is audacity    && alias aud='audacity &!'
-+command.is calibre     && alias cb='calibre &!'
 +command.is chromium    && alias ch='chromium -incognito &!'
 +command.is clementine  && alias cl='clementine &!'
 +command.is deadbeef    && alias de='deadbeef &!'
@@ -1317,7 +1356,20 @@ fi
 +command.is rhythmbox   && alias hh='rhythmbox &!'
 +command.is simple-scan && alias sc='simple-scan &!'
 +command.is strawberry  && alias sb='strawberry &!'
-+command.is torbrowser-launcher && alias tb='torbrowser-launcher &!'
++command.is torbrowser && alias tb='torbrowser &!'
+
+# If Calibre is installed...
+if +command.is calibre; then
+    # Alias "cb" to Calibre.
+    alias cb='calibre &!'
+
+    # Force Calibre to globally enable night mode by default, ignoring both
+    # system- and user-specified themes and color schemes. Sadly, the Linux
+    # port of Calibre currently fails to expose these settings in its UI. See:
+    #     https://askubuntu.com/questions/1053497/how-do-i-get-a-dark-theme-night-mode-in-calibre-ebook-viewer
+    export CALIBRE_USE_DARK_PALETTE=1
+    export CALIBRE_USE_SYSTEM_THEME=0
+fi
 
 # ....................{ COMPLETIONS                       }....................
 if [[ -n "${IS_ZSH}"  ]]; then
