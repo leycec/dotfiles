@@ -172,12 +172,12 @@ function +path.append() {
 # * "/usr/local/bin", containing custom system-wide commands.
 # * "${HOME}/bash", containing Bash-specific scripts.
 # * "${HOME}/zsh", containing zsh-specific scripts.
-# * "${HOME}/py/miniconda3/bin", containing Miniconda3-specific commands. Note
-#   that appending (rather than prepending) this directory ensures system-wide
+# * "${HOME}/py/conda/bin", containing Miniconda3-specific commands. Note that
+#   appending (rather than prepending) this directory ensures system-wide
 #   commands (e.g., "python3") take precedence over Miniconda3-specific
 #   commands of the same basename.
 # echo "PATH=${PATH} (before)"
-+path.append /usr/local/bin ~/bash ~/zsh ~/py/miniconda3/bin
++path.append /usr/local/bin ~/bash ~/zsh  #~/py/conda/bin
 # echo "PATH=${PATH} (after)"
 
 # ....................{ GLOBALS ~ shell : path ~ perl     }....................
@@ -209,6 +209,29 @@ elif [[ -d ~/perl/cpan/bin ]]; then
     export PERL_MB_OPT="--install_base \"${HOME}/perl/cpan\""
     export PERL_MM_OPT="INSTALL_BASE=\"${HOME}/perl/cpan\""
     export MANPATH="${HOME}/perl/cpan/man${MANPATH:+:${MANPATH}}"
+fi
+
+# ....................{ GLOBALS ~ shell : path ~ python   }....................
+# If the current user is an Anaconda-specific development user *AND* Anaconda
+# is installed to our preferred user-specific directory, enable Anaconda.
+if [[ "${USERNAME}" == pietakio && -d /home/pietakio/py/conda ]]; then
+    # Inform the user of incoming strangeness with respect to Python.
+    echo 'Enabling (Ana|Mini)conda integration...'
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/home/pietakio/py/conda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/home/pietakio/py/conda/etc/profile.d/conda.sh" ]; then
+        . "/home/pietakio/py/conda/etc/profile.d/conda.sh"
+    else
+        export PATH="/home/pietakio/py/conda/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
 fi
 
 # ....................{ GLOBALS ~ shell : history         }....................
