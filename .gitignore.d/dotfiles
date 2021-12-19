@@ -74,6 +74,7 @@
 # dotfile-specific paths whitelisted above. Again, this whitelist may be (and
 # often is) overridden by lower-level ".gitignore" files nested in these paths.
 !/bash/
+!/bash/ds4_lightbar
 !/bash/xorg_init
 !/bash/xorg_start
 

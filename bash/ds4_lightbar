@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# ====================[ xorg_init                         ]====================
+#
+# --------------------( LICENSE                           )--------------------
+# Copyright 2008-2021 by Cecil Curry.
+# See "LICENSE" for further details.
+#
+# --------------------( SYNOPSIS                          )--------------------
+# ds4_lightbar DS4_UDEV_ID HEX_RGB_VALUE
+#
+# Set the lightbar of the PlayStation DualShock 4 (DS4) device connected by USB
+# to this system with the passed "udev"-specific unique identifier to the
+# passed colour expressed as a human-readable 3-byte hexadecimal Red-Green-Blue
+# (RGB) value such that:
+# * "HEX_RGB_VALUE == 000000" is black.
+# * "HEX_RGB_VALUE == FFFFFF" is white.
+#
+# --------------------( USAGE                             )--------------------
+# Although runnable directly from the command line with superuser privelages,
+# this script is intended to be run indirectly by "udev" itself on mounting
+# this device. To do so:
+#
+# 1. Find the "ATTR{uniq}" string uniquely identifying this device by running:
+#    $ udevadm info -a -p $(udevadm info -q path -n /dev/input/js0)
+#    Udevadm info starts with the device specified by the devpath and then
+#    walks up the chain of parent devices. It prints for every device
+#    found, all possible attributes in the udev rules key format.
+#    A rule to match, can be composed by the attributes of the device
+#    and the attributes from one single parent device.
+#
+#      looking at device '/devices/pci0000:00/0000:00:13.0/usb5/5-4/5-4:1.3/0003:054C:09CC.0004/input/input21/js0':
+#        KERNEL=="js0"
+#        SUBSYSTEM=="input"
+#        DRIVER==""
+#        ATTR{power/control}=="auto"
+#        ATTR{power/runtime_active_time}=="0"
+#        ATTR{power/runtime_status}=="unsupported"
+#        ATTR{power/runtime_suspended_time}=="0"
+#
+#      looking at parent device '/devices/pci0000:00/0000:00:13.0/usb5/5-4/5-4:1.3/0003:054C:09CC.0004/input/input21':
+#        KERNELS=="input21"
+#        SUBSYSTEMS=="input"
+#        DRIVERS==""
+#        ATTRS{capabilities/abs}=="3003f"
+#        ATTRS{capabilities/ev}=="20001b"
+#        ATTRS{capabilities/ff}=="107030000 0"
+#        ATTRS{capabilities/key}=="7fdb000000000000 0 0 0 0"
+#        ATTRS{capabilities/led}=="0"
+#        ATTRS{capabilities/msc}=="10"
+#        ATTRS{capabilities/rel}=="0"
+#        ATTRS{capabilities/snd}=="0"
+#        ATTRS{capabilities/sw}=="0"
+#        ATTRS{id/bustype}=="0003"
+#        ATTRS{id/product}=="09cc"
+#        ATTRS{id/vendor}=="054c"
+#        ATTRS{id/version}=="8111"
+#        ATTRS{name}=="Sony Interactive Entertainment Wireless Controller"
+#        ATTRS{phys}=="usb-0000:00:13.0-4/input3"
+#        ATTRS{power/control}=="auto"
+#        ATTRS{power/runtime_active_time}=="0"
+#        ATTRS{power/runtime_status}=="unsupported"
+#        ATTRS{power/runtime_suspended_time}=="0"
+#        ATTRS{properties}=="0"
+#        ATTRS{uniq}=="1c:66:6d:dc:07:94"  # <--- this is the desired string
+# 2. Add a new custom "udev" rule setting the lightbar of this DS4 to a desired
+#    colour on mounting this DS4:
+#    # In "/etc/udev/rules.d/10-local.rules":
+#    ACTION=="add", SUBSYSTEM=="input", ATTRS{uniq}=="1c:66:6d:dc:07:94" RUN+="/usr/local/bin/ds4_lightbar '%p' 000202"
+#
+# --------------------( SEE ALSO                          )--------------------
+# * https://gaming.stackexchange.com/a/336936/284508
+#   StackOverflow post strongly inspiring this script.
+
+# ....................{ PREAMBLE                          }....................
+# Enable strictness for sanity.
+set -e
+
+# ....................{ ARGUMENTS                         }....................
+# If this script was passed an unexpected number of arguments, fail.
+(( $# == 2 )) || {
+    echo 'Expected exactly two arguments.' 1>&2
+    exit 1
+}
+# Else, this script was passed an expected number of arguments.
+
+# Localize the passed arguments.
+DS4_UDEV_PATH="${1}"
+HEX_RGB_VALUE="${2}"
+
+# Parse these low-level arguments into higher-level variables. Notably...
+#
+# Convert this 3-byte hexadecimal RGB colour value into:
+# * A 1-byte red colour component.
+# * A 1-byte green colour component.
+# * A 1-byte blue colour component.
+RED_VALUE=$((16#${HEX_RGB_VALUE:0:2}))
+GREEN_VALUE=$((16#${HEX_RGB_VALUE:2:2}))
+BLUE_VALUE=$((16#${HEX_RGB_VALUE:4:2}))
+
+# Strip the unique identifier of this DS4 from the passed "udev" path.
+DS4_UDEV_ID=$(echo "${DS4_UDEV_PATH}" |
+    egrep -o \
+    '[[:xdigit:]]{4}:[[:xdigit:]]{4}:[[:xdigit:]]{4}\.[[:xdigit:]]{4}')
+
+# If this identifier could *NOT* be stripped from this path, fail.
+[[ -n "${DS4_UDEV_ID}" ]] || {
+    echo "DS4 udev ID not found in path \"${DS4_UDEV_PATH}\"." 1>&2
+    exit 1
+}
+# Else, this identifier was stripped from this path.
+
+# Substring prefixing all system-wide directories controlling the lightbar on
+# this DS4.
+LED_DIR_PREFIX="/sys/class/leds/${DS4_UDEV_ID}"
+
+# If an expected directory does *NOT* exist, fail.
+[[ -d "${LED_DIR_PREFIX}:global" ]] || {
+    echo "DS4 lightbar directory \"${LED_DIR_PREFIX}:global\" not found." 1>&2
+    exit
+}
+# Else, the expected directory exists.
+
+# ....................{ MAIN                              }....................
+# Dim the lightbar of this DS4 to black as a precaution.
+echo 0 > "${LED_DIR_PREFIX}:red/brightness"
+echo 0 > "${LED_DIR_PREFIX}:green/brightness"
+echo 0 > "${LED_DIR_PREFIX}:blue/brightness"
+
+# Set the lightbar of this DS4 to the passed colour.
+echo "${RED_VALUE}"   > "${LED_DIR_PREFIX}:red/brightness"
+echo "${GREEN_VALUE}" > "${LED_DIR_PREFIX}:green/brightness"
+echo "${BLUE_VALUE}"  > "${LED_DIR_PREFIX}:blue/brightness"
