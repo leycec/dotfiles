@@ -1372,6 +1372,7 @@ fi
 +command.is filelight   && alias fl='filelight &!'
 +command.is geeqie      && alias gq='geeqie &!'
 +command.is lutris      && alias lu='lutris &!'
++command.is mcomix      && alias mc='mcomix &!'
 +command.is nicotine    && alias ni='nicotine &!'
 +command.is playonlinux && alias pol='playonlinux &!'
 +command.is qtcreator   && alias qtc='qtcreator &!'
