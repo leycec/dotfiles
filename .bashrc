@@ -629,6 +629,34 @@ if +command.is ffmpeg; then
     }
 
 
+    # str +audio.convert_m4a_to_mp3(
+    #     str m4a_filename1, str m4a_filename2, ...)
+    #
+    # Convert each M4A-uncompressed audio file with the passed filename into
+    # an MP3-compressed audio file with the same filename with filetype "mp3"
+    # rather than "m4a".
+    function +audio.convert_m4a_to_mp3() {
+        (( $# >= 1 )) || {
+            echo 'Expected one or more filenames.' 1>&2
+            return 1
+        }
+
+        local m4a_filename mp3_filename
+        for   m4a_filename in "${@}"; do
+            mp3_filename="${m4a_filename%.m4a}.mp3"
+
+            # Dismantled, this is:
+            #
+            # * "-qscale:a 0", encoding only audio with fixed quality scale
+            #   variable bitrate (VBR) with the optimum preset predefined by
+            #   the target codec. While codec-dependent, this typically
+            #   approximates standard high-quality 320Kb CBR compressed audio.
+            echo "Converting \"${m4a_filename}\" to \"${mp3_filename}\"..."
+            command ffmpeg -i "${m4a_filename}" -qscale:a 0 "${mp3_filename}"
+        done
+    }
+
+
     # str +audio.convert_wav_to_mp3(
     #     str wav_filename1, str wav_filename2, ...)
     #
@@ -706,15 +734,15 @@ fi
 
 # If ImageMagick's "mogrify" command is in the current ${PATH}...
 if +command.is mogrify; then
-    # str +image.compact(str src_filename, int trg_width)
+    # str +image.thumbnail(str src_filename, int trg_width)
     #
     # Compact the image file with the passed filename of filetype supported by
     # ImageMagick into an output file whose basename excluding filetype is
-    # prefixed by "compact-" (e.g., "+image.compact input1.png input2.png"
-    # produces "compact-input1.png" and "compact-input2.png") with the target
-    # pixel width, where compaction implies a significant reduction in both
-    # size and filesize with no discernable reduction in subjective fidelity
-    # while preserving aspect ratio.
+    # prefixed by "thumbnail-" (e.g., "+image.thumbnail input1.png"
+    # produces "thumbnail-input1.png") with the target pixel width, where
+    # compaction implies a significant reduction in both size and filesize with
+    # no discernable reduction in subjective fidelity while preserving aspect
+    # ratio.
     #
     # Note that this file's existing pixel width may be easily inspected with:
     #     $ file "${src_filename}"
@@ -724,7 +752,7 @@ if +command.is mogrify; then
     # by iterative maximization of image reduction quality as objectively
     # measured by structural dissimilarity (DSSIM):
     #     https://www.smashingmagazine.com/2015/06/efficient-image-resizing-with-imagemagick
-    function +image.compact() {
+    function +image.thumbnail() {
         (( $# == 2 )) || {
             echo 'Expected one filename and one target width.' 1>&2
             return 1
@@ -732,11 +760,11 @@ if +command.is mogrify; then
         local src_filename="${1}" trg_width="${2}"
 
         # Derive this target filename from this source filename.
-        trg_filename="$(dirname "${src_filename}")/compact-$(basename "${src_filename}")"
+        trg_filename="$(dirname "${src_filename}")/thumbnail-$(basename "${src_filename}")"
 
         # Copy this filename to the expected target filename, as the
         # "mogrify" command only works in-place and thus destructively.
-        echo "Compacting \"${src_filename}\" to \"${trg_filename}\"..."
+        echo "Thumbnailing \"${src_filename}\" to \"${trg_filename}\"..."
         cp -i "${src_filename}" "${trg_filename}"
 
         # Compact this target file. Note this pipeline diverges from that
@@ -1259,8 +1287,97 @@ done
 
 # If the "emerge" command is available, this is Gentoo Linux. In this case...
 if +command.is emerge; then
-    # Configure Gentoo Linux-based commands with sane defaults.
-    alias rc-update='rc-update --verbose'
+    # void +gentoo.bump_world()
+    #
+    # Automagically update this Gentoo Linux system. Specifically (in order):
+    # * Fetch the most recent copies of the official Portage tree *AND* all
+    #   unofficial third-party overlays locally added to this system.
+    # * Update all packages in the @world set.
+    # * Update all relevant "eselect" modules.
+    function +gentoo.bump_world() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        echo 'Bumping ebuild repositories...'
+        emerge --sync
+
+        echo 'Bumping @world packages...'
+        emw
+
+        +gentoo.bump_eselect
+    }
+
+    # void +gentoo.bump_eselect()
+    #
+    # Automagically bump all "eselect" modules that we typically do *NOT*
+    # actively manage to their most recent versions. Doing so is essential to
+    # avoiding issues with obsolete package versions. For safety, this function
+    # is automatically called after every world update. Note that:
+    # * This is an automated alternative to "emerge --depclean --ask". While
+    #   performing that command *WOULD* be preferable in the ideal world, doing
+    #   so also:
+    #   * Consumes excess spare time we simply do *NOT* have.
+    #   * Destroys packages that may, in fact, be required. Filtering the list
+    #     of packages to be depcleaned of packages that should *NEVER* be
+    #     depcleaned is a considerable maintenance burden. See: "spare time."
+    function +gentoo.bump_eselect() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        echo 'Bumping "eselect" modules...'
+
+        # Names of all safely bumpable "eselect" modules.
+        local -a ESELECT_MODULE_NAMES=(
+            binutils gcc java-vm lua ruby rust wine wxwidgets
+        )
+
+        # For the name of each such module...
+        local eselect_module_name eselect_module_newest
+        for eselect_module_name in "${ESELECT_MODULE_NAMES[@]}"; do
+            echo "Bumping \"eselect ${eselect_module_name}\" module to:"
+
+            # Last "eselect" entry for this module, typically (but *NOT*
+            # necessarily always) corresponding to the most recently installed
+            # stable package atom for this module. This line resembles:
+            #      [4] x86_64-pc-linux-gnu-11.2.1
+            #
+            # Dismantled, this is:
+            # * "sed ...", stripping all empty lines. The output of the "list"
+            #   subcommand for most but *NOT* all "eselect" modules contains no
+            #   empty lines. Exceptions include "eselect java-vm list", which
+            #   oddly *ALWAYS* emits a trailing blank line. (It is what it is.)
+            # * "tail ...", printing only the last line.
+            eselect_module_newest_line="$(command eselect "${eselect_module_name}" list | \
+                command sed '/^$/d' | \
+                command tail -n 1)"
+            echo "${eselect_module_newest_line}"
+
+            # "eselect" list number parsed from this entry (e.g., "4" above).
+            eselect_module_newest_index="$(echo "${eselect_module_newest_line}" | \
+                command sed -r 's~^\s*\[([[:digit:]]+)\].*$~\1~')"
+
+            #FIXME: Advise users to manually set their user Java VM as well.
+            # If this is the non-standard "eselect java-vm" module, bump only
+            # the system Java VMs to this entry.
+            if [[ "${eselect_module_name}" == java-vm ]]; then
+                command eselect "${eselect_module_name}" \
+                    set system "${eselect_module_newest_index}"
+            # Else, bump this module to this entry.
+            else
+                command eselect "${eselect_module_name}" \
+                    set "${eselect_module_newest_index}"
+            fi
+        done
+
+        # Update all shell variables updated by prior bumping. Note that this
+        # exact command is advised when bumping numerous modules.
+        echo 'Bumping shell variables...'
+        . /etc/profile
+    }
 
     # Unconditional Gentoo Linux-specific aliases.
     alias eb='ebuild'
@@ -1288,7 +1405,7 @@ if +command.is emerge; then
         @world && emerge @preserved-rebuild'
 
     # Alias "emsw" to update both Portage *AND* all locally installed packages.
-    alias emsw='emerge --sync; emw'
+    alias emsw='+gentoo.bump_world'
 
     # Conditional Gentoo Linux-specific aliases.
     +command.is dispatch-conf && alias di='dispatch-conf'
@@ -1361,26 +1478,32 @@ fi
 # ....................{ ALIASES ~ gui                     }....................
 # GUI-specific abbreviations, typically suffixed by "&!" to permit windowed
 # applications to be spawned in a detached manner from the current shell.
-+command.is assistant   && alias ass='assistant &!'      # Don't judge me.
-+command.is audacity    && alias aud='audacity &!'
-+command.is chromium    && alias ch='chromium -incognito &!'
-+command.is clementine  && alias cl='clementine &!'
-+command.is deadbeef    && alias de='deadbeef &!'
-+command.is deluge-gtk  && alias dg='deluge-gtk &!'
-+command.is fbreader    && alias fb='fbreader &!'
-+command.is firefox     && alias ff='firefox &!'
-+command.is filelight   && alias fl='filelight &!'
-+command.is geeqie      && alias gq='geeqie &!'
-+command.is lutris      && alias lu='lutris &!'
-+command.is mcomix      && alias mc='mcomix &!'
-+command.is nicotine    && alias ni='nicotine &!'
-+command.is playonlinux && alias pol='playonlinux &!'
-+command.is qtcreator   && alias qtc='qtcreator &!'
-+command.is retroarch   && alias ra='retroarch &!'
-+command.is rhythmbox   && alias hh='rhythmbox &!'
-+command.is simple-scan && alias sc='simple-scan &!'
-+command.is strawberry  && alias sb='strawberry &!'
-+command.is torbrowser && alias tb='torbrowser &!'
++command.is antimicrox && {
+    alias anq='antimicrox &!'
+    alias and='antimicrox --daemon --profile ~/yml/kiseki-linux/lutris/2004-sora_no_kiseki_fc/sora-no-kiseki-fc-ps4.gamecontroller.amgp &!'
+}
++command.is assistant    && alias ass='assistant &!'      # Don't judge me.
++command.is audacity     && alias aud='audacity &!'
++command.is chromium     && alias ch='chromium -incognito &!'
++command.is clementine   && alias cl='clementine &!'
++command.is deadbeef     && alias de='deadbeef &!'
++command.is deluge-gtk   && alias dg='deluge-gtk &!'
++command.is fbreader     && alias fb='fbreader &!'
++command.is firefox      && alias ff='firefox &!'
++command.is filelight    && alias fl='filelight &!'
++command.is font-manager && alias fm='font-manager &!'
++command.is geeqie       && alias gq='geeqie &!'
++command.is gimp         && alias gp='gimp &!'
++command.is lutris       && alias lu='lutris &!'
++command.is mcomix       && alias mc='mcomix &!'
++command.is nicotine     && alias ni='nicotine &!'
++command.is playonlinux  && alias pol='playonlinux &!'
++command.is qtcreator    && alias qtc='qtcreator &!'
++command.is retroarch    && alias ra='retroarch &!'
++command.is rhythmbox    && alias hh='rhythmbox &!'
++command.is simple-scan  && alias sc='simple-scan &!'
++command.is strawberry   && alias sb='strawberry &!'
++command.is torbrowser-launcher && alias tb='torbrowser-launcher &!'
 
 # If Calibre is installed...
 if +command.is calibre; then
