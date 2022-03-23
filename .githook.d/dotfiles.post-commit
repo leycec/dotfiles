@@ -21,7 +21,7 @@ BRANCH_NAME="$(git rev-parse --abbrev-ref HEAD)"
 # the "github" branch and...
 if [ "${BRANCH_NAME}" = 'master' ] && git checkout github; then
     # Attempt to apply this commit to the "github" branch.
-    if git rebase --rebase-merges master; then
+    if git rebase --rebase-merges --reapply-cherry-picks master; then
         echo '[post-commit] Rebased "github" to "master".'
     # If this attempt fails, abort this attempt.
     else
