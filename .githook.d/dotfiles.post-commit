@@ -29,14 +29,14 @@ if [ "${BRANCH_NAME}" = 'master' ] && git checkout github; then
         git rebase --abort
     fi
 
-    # Attempt to pull all remote changes. Assuming "~/.gitconfig" to contain a
-    # "[pull]" section enabling "rebase = true", this implicitly rebases the
-    # local to the remote "github" branch in preparation for later pushing.
-    if git pull --rebase; then
-        echo '[post-commit] Pulled "github".'
-    else
-        echo '[post-commit] Pulling "github" failed.' 1>&2
-    fi
+    # # Attempt to pull all remote changes. Assuming "~/.gitconfig" to contain a
+    # # "[pull]" section enabling "rebase = true", this implicitly rebases the
+    # # local to the remote "github" branch in preparation for later pushing.
+    # if git pull --rebase; then
+    #     echo '[post-commit] Pulled "github".'
+    # else
+    #     echo '[post-commit] Pulling "github" failed.' 1>&2
+    # fi
 
     # In either case, switch back to the default branch.
     git checkout "${BRANCH_NAME}"

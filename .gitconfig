@@ -44,9 +44,11 @@
     ls = ls-files
     pl = pull
     ps = push
-    r = rebase
+    rb = rebase
     rc = rebase --continue
     ri = rebase --interactive
+    r = remote
+    re = remote
     rem = remote
     s = status
     sh = stash

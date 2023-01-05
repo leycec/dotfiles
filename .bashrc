@@ -1,26 +1,26 @@
 #!/usr/bin/env bash
-# ====================[ .bashrc                           ]====================
+# ====================[ .bashrc                            ]====================
 #
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2008-2020 by Cecil Curry.
 # See "LICENSE" for further details.
 #
-# --------------------( SYNOPSIS                          )--------------------
+# --------------------( SYNOPSIS                           )--------------------
 # User-specific startup script for non-login bash shells.
 #
-# --------------------( USAGE                             )--------------------
+# --------------------( USAGE                              )--------------------
 # This script transparently supports both bash and zsh for generality.
 #
 # For bash support, no further work is required. For zsh support, either
 # symlink this script to "~/.zshrc" or source this script from "~/.zshrc".
 #
-# --------------------( CAVEATS                           )--------------------
+# --------------------( CAVEATS                            )--------------------
 # This script is sourced by *ALL* interactive bash shells on startup, including
 # numerous low-level fragile shells (e.g., "scp", "rcp") intolerate of output.
 # To avoid spurious issues, both this script and all commands transitively run
 # by this script *MUST* run silently (i.e., output nothing).
 #
-# --------------------( DEPENDENCIES                      )--------------------
+# --------------------( DEPENDENCIES                       )--------------------
 # This script has no mandatory dependencies but numerous optional dependencies
 # recommended for optimal usability, including:
 #
@@ -38,7 +38,7 @@
 # * Under Gentoo Linux:
 #    sudo emerge --ask htop keychain mpd ncdu ncmpcpp ripgrep vim zsh
 
-# ....................{ SHELLS                            }....................
+# ....................{ SHELLS                             }....................
 # 1 if the current shell is bash and the empty string otherwise.
 IS_BASH=
 
@@ -60,7 +60,7 @@ else
     return 1
 fi
 
-# ....................{ INTERACTIVE                       }....................
+# ....................{ INTERACTIVE                        }....................
 # If the current shell is non-interactive, silently reduce to a noop to avoid
 # breaking low-level fragile shells (e.g., "scp", "rcp") intolerate of output.
 if   [[ -n "${IS_ZSH}"  ]]; then [[ -o interactive ]] || return
@@ -68,7 +68,7 @@ elif [[ -n "${IS_BASH}" ]]; then [[ $- == *i*      ]] || return
 fi
 # Else, the current shell is interactive. To quoth the Mario: "Let's a-go!"
 
-# ....................{ FUNCTIONS ~ aliases               }....................
+# ....................{ FUNCTIONS ~ aliases                }....................
 # Aliases principally intended to be expanded non-interactively (e.g., within
 # function bodies) rather than interactively at the command line.
 
@@ -92,7 +92,7 @@ alias -- '+args.pop'='set -- "${@:1:$(($#-1))}"'
 # alias is defined for orthogonality with the non-trivial +args.pop() alias.
 alias -- '+args.shift'='shift'
 
-# ....................{ FUNCTIONS                         }....................
+# ....................{ FUNCTIONS                          }....................
 # For disambiguity (e.g., with external commands in the current ${PATH}), *ALL*
 # functions defined below are prefixed with punctuation supported by both bash
 # and zsh but otherwise prohibited for standard command basenames: "+".
@@ -150,7 +150,7 @@ function +path.append() {
         PATH="${PATH}:${dirname}"
     done
 
-    # Strip an erroneously leading delimiter from the current ${PATH} if any,
+    # Strip an erroneously leading delimiter from the current ${PATH} if any --
     # a common edge case when the initial ${PATH} is the empty string.
     PATH="${PATH#:}"
 
@@ -160,7 +160,7 @@ function +path.append() {
     export PATH
 }
 
-# ....................{ GLOBALS ~ shell : path            }....................
+# ....................{ GLOBALS ~ shell : path             }....................
 # Define globals *AFTER* defining core functions above (e.g., +command.is())
 # but *BEFORE* defining non-core functions below leveraging these globals.
 
@@ -180,7 +180,7 @@ function +path.append() {
 +path.append /usr/local/bin ~/bash ~/zsh  #~/py/conda/bin
 # echo "PATH=${PATH} (after)"
 
-# ....................{ GLOBALS ~ shell : path ~ perl     }....................
+# ....................{ GLOBALS ~ shell : path ~ perl      }....................
 # If the current user is *NOT* the superuser, sanitize the current shell
 # environment of the Perl-specific globals exported below. Preserving these
 # globals as the superuser induces badness elsewhere. For example, attempting
@@ -211,30 +211,7 @@ elif [[ -d ~/perl/cpan/bin ]]; then
     export MANPATH="${HOME}/perl/cpan/man${MANPATH:+:${MANPATH}}"
 fi
 
-# ....................{ GLOBALS ~ shell : path ~ python   }....................
-# If the current user is an Anaconda-specific development user *AND* Anaconda
-# is installed to our preferred user-specific directory, enable Anaconda.
-if [[ "${USERNAME}" == pietakio && -d /home/pietakio/py/conda ]]; then
-    # Inform the user of incoming strangeness with respect to Python.
-    echo 'Enabling (Ana|Mini)conda integration...'
-
-# >>> conda initialize >>>
-# !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$('/home/pietakio/py/conda/bin/conda' 'shell.bash' 'hook' 2> /dev/null)"
-if [ $? -eq 0 ]; then
-    eval "$__conda_setup"
-else
-    if [ -f "/home/pietakio/py/conda/etc/profile.d/conda.sh" ]; then
-        . "/home/pietakio/py/conda/etc/profile.d/conda.sh"
-    else
-        export PATH="/home/pietakio/py/conda/bin:$PATH"
-    fi
-fi
-unset __conda_setup
-# <<< conda initialize <<<
-fi
-
-# ....................{ GLOBALS ~ shell : history         }....................
+# ....................{ GLOBALS ~ shell : history          }....................
 # Absolute path of the history file to which the current shell appends
 # previously run commands.
 export HISTFILE="${HOME}/.histfile"
@@ -267,7 +244,7 @@ elif [[ -n "${IS_BASH}" ]]; then
     shopt -q login_shell && _IS_LOGIN=1
 fi
 
-# ....................{ GLOBALS ~ colour                  }....................
+# ....................{ GLOBALS ~ colour                   }....................
 # Conditionally enable colour support for all relevant "coreutils" commands.
 
 # 1 if the current shell supports color or the empty string otherwise.
@@ -318,7 +295,7 @@ if [[ -n "${_IS_COLOR}" ]]; then
     fi
 fi
 
-# ....................{ GLOBALS ~ command                 }....................
+# ....................{ GLOBALS ~ command                  }....................
 # If the "vim" command is in the current ${PATH}...
 if +command.is vim; then
     # Prefer "vim" as the standard command-line editor.
@@ -341,25 +318,20 @@ if +command.is g-cpan && [[ -d ~/bash/raiagent ]]; then
     export GCPAN_OVERLAY=~/bash/raiagent
 fi
 
-# ....................{ GLOBALS ~ command                 }....................
+# ....................{ GLOBALS ~ command                  }....................
 # Gentoo developer-specific git-formatted username effectively required by all
 # Gentoo repositories when submitting pull requests (PRs). See also:
 #     https://github.com/gentoo/sci/blob/master/CONTRIBUTING.md
 export ECHANGELOG_USER="Cecil Curry <leycec@gmail.com>"
 
-# ....................{ FUNCTIONS ~ dir                   }....................
+# ....................{ FUNCTIONS ~ dir                    }....................
 # str +dir.list_recursive(str dirname1, ...)
 #
 # Recursively list all transitive subdirectories of all directories with the
 # passed absolute or relative dirnames.
 function +dir.list_recursive() {
-    (( $# >= 1 )) || {
-        echo 'Expected one or more dirnames.' 1>&2
-        return 1
-    }
-
     # Make it so, ensign.
-    ls -lR "${@}" | command less
+    ls -lR "${@}" | less
 }
 
 
@@ -451,7 +423,7 @@ function +dir.print_subsubsubdirname_random() {
     print "${SUBSUBSUBDIRNAME}"
 }
 
-# ....................{ FUNCTIONS ~ process               }....................
+# ....................{ FUNCTIONS ~ process                }....................
 # bool +process.has_basename(str command_basename)
 #
 # Report success only if at least one process with the passed command basename
@@ -479,7 +451,7 @@ function +process.has_basename() {
         command grep -x "${1}" >&/dev/null
 }
 
-# ....................{ FUNCTIONS ~ rc                    }....................
+# ....................{ FUNCTIONS ~ rc                     }....................
 # void +rc()
 #
 # Resource the current bash or zsh startup script from the current shell (e.g.,
@@ -511,10 +483,10 @@ function +rc.edit() {
     +rc
 }
 
-# ....................{ FUNCTIONS ~ command               }....................
+# ....................{ FUNCTIONS ~ command                }....................
 # Functions conditionally dependent upon the existence of one or more commands.
 
-# ....................{ FUNCTIONS ~ command : arch : zip  }....................
+# ....................{ FUNCTIONS ~ command : arch : zip   }....................
 # If "zip" is in the current ${PATH}...
 if +command.is zip; then
     # str +archive.make_zip(
@@ -598,7 +570,7 @@ if +command.is unzip; then
     }
 fi
 
-# ....................{ FUNCTIONS ~ command : audio       }....................
+# ....................{ FUNCTIONS ~ command : audio        }....................
 # If FFmpeg is in the current ${PATH}...
 if +command.is ffmpeg; then
     # str +audio.convert_flac_to_mp3(
@@ -613,8 +585,10 @@ if +command.is ffmpeg; then
             return 1
         }
 
+        # For each passed filename...
         local flac_filename mp3_filename
         for   flac_filename in "${@}"; do
+            # Target filename derived from this source filename.
             mp3_filename="${flac_filename%.flac}.mp3"
 
             # Dismantled, this is:
@@ -727,22 +701,52 @@ if +command.is shnsplit; then
     }
 fi
 
-# ....................{ FUNCTIONS ~ command : image       }....................
+# ....................{ FUNCTIONS ~ command : image        }....................
 #FIXME: Create similar ImageMagick-based commands for:
-#* Image conversion + reduction: e.g.,
-#     $ convert -resize 50% 0.jpg 0.png  # halve pixel size, preserving aspect ratio
+#* Reduction to grayscale. Curiously, it would seem that there are a countably
+#  infinite number of approaches to archieving this reduction. See also This
+#  authoritative INTP-style article on the subject:
+#       https://im.snibgo.com/mmono.htm
+#
+#  The table produced by the sentence "So we sort on Mean and StdDev,
+#  eliminating duplicates:" orders the results according to standard statistical
+#  measures. That said, we conveniently ignore the first approach in this table
+#  (i.e., "colour_distance_Lab"), as the results are qualitatively *HIDEOUS.*
+#
+#  The results of that article strongly suggest that the following ImageMagick
+#  command produces optimal qualitative results for this in-place reduction:
+#      magick -grayscale Rec601Luminance "${src_filename}"
 
 # If ImageMagick's "mogrify" command is in the current ${PATH}...
 if +command.is mogrify; then
-    # str +image.thumbnail(str src_filename, int trg_width)
+    # str +image.convert(str src_filename1, ..., src trg_filetype)
     #
-    # Compact the image file with the passed filename of filetype supported by
-    # ImageMagick into an output file whose basename excluding filetype is
-    # prefixed by "thumbnail-" (e.g., "+image.thumbnail input1.png"
-    # produces "thumbnail-input1.png") with the target pixel width, where
-    # compaction implies a significant reduction in both size and filesize with
-    # no discernable reduction in subjective fidelity while preserving aspect
-    # ratio.
+    # Compact each source image file with the passed filename (of a filetype
+    # supported by ImageMagick) into a target image file with a similar filename
+    # but whose filetype is replaced with that of the passed target filetype.
+    function +image.convert() {
+        (( $# >= 2 )) || {
+            echo 'Expected one or more image filenames and one target filetype.' 1>&2
+            return 1
+        }
+
+        # Target filetype, stripped of any preceding "." character for safety.
+        local trg_filetype="${@[-1]#.}"
+
+        # Convert these source to target files with this filetype. Thankfully,
+        # ImageMagick's "mogrify" command mostly trivializes image conversion.
+        echo "Converting images to \"${trg_filetype}\"..."
+        command mogrify -format "${trg_filetype}" "${@[1,-2]}"
+    }
+
+    # str +image.thumbnail(str src_filename1, ..., int trg_width)
+    #
+    # Compact each source image file with the passed filename (of a filetype
+    # supported by ImageMagick) into a target image file with the target pixel
+    # width whose basename excluding filetype is prefixed by "thumbnail-" (e.g.,
+    # "+image.thumbnail input1.png" produces "thumbnail-input1.png"), where
+    # compaction implies a significant reduction in size and filesize with *NO*
+    # discernable reduction in fidelity while preserving the aspect ratio.
     #
     # Note that this file's existing pixel width may be easily inspected with:
     #     $ file "${src_filename}"
@@ -753,48 +757,121 @@ if +command.is mogrify; then
     # measured by structural dissimilarity (DSSIM):
     #     https://www.smashingmagazine.com/2015/06/efficient-image-resizing-with-imagemagick
     function +image.thumbnail() {
-        (( $# == 2 )) || {
-            echo 'Expected one filename and one target width.' 1>&2
+        (( $# >= 2 )) || {
+            echo 'Expected one or more image filenames and one target width.' 1>&2
             return 1
         }
-        local src_filename="${1}" trg_width="${2}"
 
-        # Derive this target filename from this source filename.
-        trg_filename="$(dirname "${src_filename}")/thumbnail-$(basename "${src_filename}")"
+        # Target image width.
+        local trg_width="${@[-1]}"
 
-        # Copy this filename to the expected target filename, as the
-        # "mogrify" command only works in-place and thus destructively.
-        echo "Thumbnailing \"${src_filename}\" to \"${trg_filename}\"..."
-        cp -i "${src_filename}" "${trg_filename}"
+        # For each passed filename...
+        local src_filename trg_filename
+        for   src_filename in "${@[1,-2]}"; do
+            # Derive this target filename from this source filename.
+            trg_filename="$(\
+                dirname "${src_filename}")/thumbnail-$(basename "${src_filename}")"
 
-        # Compact this target file. Note this pipeline diverges from that
-        # originally given by Dave Newton above as follows:
-        # * "-filter Triangle" is intentionally *NOT* passed, as this filter
-        #   imposes a significant Gaussian blur.
-        # * "-quality 82" is intentionally *NOT* passed, as this quality
-        #   reduction is perceptible to the human eye.
-        # * "-strip" is intentionally *NOT* passed, as this option
-        #   *DRAMATICALLY* reduces quality for photographs with embedded colour
-        #   profiles. Since photographs captured by mobile devices embed colour
-        #   profiles *AND* since mobile devices now account for most
-        #   photographs, this option effectively destroys photographs.
-        command mogrify \
-            -thumbnail "${trg_width}" \
-            -define filter:support=2 \
-            -unsharp '0.25x0.25+8+0.065' \
-            -dither None \
-            -posterize 136 \
-            -define jpeg:fancy-upsampling=off \
-            -define png:compression-filter=5 \
-            -define png:compression-level=9 \
-            -define png:compression-strategy=1 \
-            -define png:exclude-chunk=all \
-            -interlace line \
-            -colorspace sRGB \
-            "${trg_filename}"
+            # Copy this filename to the expected target filename, as the
+            # "mogrify" command only works in-place and thus destructively.
+            echo "Thumbnailing \"${src_filename}\" to \"${trg_filename}\"..."
+            cp -i "${src_filename}" "${trg_filename}"
+
+            # Compact this target file. Note this pipeline diverges from that
+            # originally given by Dave Newton above as follows:
+            # * "-filter Triangle" is intentionally *NOT* passed, as that filter
+            #   imposes a significant Gaussian blur.
+            # * "-quality 82" is intentionally *NOT* passed, as that quality
+            #   reduction is perceptible to the human eye.
+            # * "-strip" is intentionally *NOT* passed, as this option
+            #   *DRAMATICALLY* reduces quality for photographs with embedded colour
+            #   profiles. Since photographs captured by mobile devices embed colour
+            #   profiles *AND* since mobile devices now account for most
+            #   photographs, this option effectively destroys photographs.
+            command mogrify \
+                -thumbnail "${trg_width}" \
+                -define filter:support=2 \
+                -unsharp '0.25x0.25+8+0.065' \
+                -dither None \
+                -posterize 136 \
+                -define jpeg:fancy-upsampling=off \
+                -define png:compression-filter=5 \
+                -define png:compression-level=9 \
+                -define png:compression-strategy=1 \
+                -define png:exclude-chunk=all \
+                -interlace line \
+                -colorspace sRGB \
+                "${trg_filename}"
+        done
     }
 fi
 
+# ....................{ FUNCTIONS ~ command : image : jpg  }....................
+# If "jpegoptim" is in the current ${PATH}...
+#
+# Note that numerous JPEG optimizers exist (e.g., "jpeg-tran", MozJPEG), but
+# that "jpegoptim" is well-known to be reasonably fast, compress reasonably
+# well, and trivially installable under most Linux distributions. For example:
+# * MozJPEG is significantly slower, compresses only marginally better, AND* is
+#   non-trivial to install under most Linux distributions (due to being a
+#   drop-in replacement for the standard "libjpeg" shared library).
+#
+# In short, "jpegoptim" offers the most reasonable tradeoffs.
+if +command.is jpegoptim; then
+    # str +jpg.optimize(str jpg_filename1, ..., int jpg_quality)
+    #
+    # Optimize each JPEG-formatted image file with the passed filename into an
+    # output file whose basename excluding filetype is suffixed by "-optim"
+    # (e.g., "+jpg.optimize input1.jpg input2.jpg" produces "input1-optim.jpg"
+    # and "input2-optim.jpg"), where optimization implies lossy compression to
+    # the passed target JPEG quality as an integer in the range [0, 100]
+    # (inclusive) with *NO* discernable reduction in subjective fidelity.
+    #
+    # Note that:
+    # * A target quality of 100 effectively guarantees lossless operation.
+    # * A target quality of 50 is typically the lowest lossy optimization that
+    #   still reasonably preserves the fidelity of the input image. Avoid
+    #   decreasing the quality below 50 unless you know what you're doing.
+    # * Common web practice as of this implementation typically advises sizes of
+    #   between 100—400Kb for JPEG files *NOT* used as hero images (i.e.,
+    #   front-facing header banner images, which are typically full-width and
+    #   between quarter- to half-height).
+    function +jpg.optimize() {
+        (( $# >= 2 )) || {
+            echo 'Expected one or more JPEG filenames and one target quality.' 1>&2
+            return 1
+        }
+
+        # Target JPEG quality as an integer in the range [0, 100] (inclusive).
+        local trg_quality="${@[-1]}"
+
+        # For each passed filename...
+        local src_filename trg_filename
+        for   src_filename in "${@[1,-2]}"; do
+            # Target filename derived from this source filename.
+            trg_filename="${src_filename%.jpg}-optim.jpg"
+
+            # Dismantled, this is:
+            # * "--max=...", optimizing this input file to this maximum target
+            #   quality.
+            # * "--stdout", printing the contents of the optimized target file
+            #   to standard output. By default, "jpegoptim" insanely *SILENTLY*
+            #   overwrites the unoptimized input file! Yikes.
+            #
+            # Note that:
+            # * The "--strip-all" ("-s") option removing *ALL* metadata is
+            #   intentionally *NOT* passed, as "jpegoptim" already removes *ALL*
+            #   metadata excluding colourspace metadata by default.
+            # echo "Optimizing \"${src_filename}\" to \"${trg_filename}\"..."
+            command jpegoptim \
+                --max="${trg_quality}" \
+                --stdout \
+                "${src_filename}" > "${trg_filename}"
+        done
+    }
+fi
+
+# ....................{ FUNCTIONS ~ command : image : png  }....................
 # If "pngquant" is in the current ${PATH}...
 #
 # Note that numerous PNG optimizers exist (e.g., "optipng", "pngcrush"), but
@@ -817,7 +894,6 @@ if +command.is pngquant; then
         }
 
         # Dismantled, this is:
-        #
         # * "--speed 1", maximizing resulting fidelity at a negligible cost in
         #   time complexity. Since "pngquant" is already when known to be the
         #   fastest PNG optimizer, this tradeoff is typically optimal.
@@ -826,7 +902,137 @@ if +command.is pngquant; then
     }
 fi
 
-# ....................{ FUNCTIONS ~ command : x.org       }....................
+# ....................{ FUNCTIONS ~ command : net          }....................
+# If the "nc" (i.e., "netcat") command is in the current ${PATH}...
+if +command.is nc; then
+    # str +net.inject_netcat_payload(
+    #     str payload_filename, str ip_address, int port_number)
+    #
+    # Inject (i.e., transmit) the contents of the passed file as a payload over
+    # the NetCat protocol into the remote machine at the passed IP address and
+    # port number.
+    function +net.inject_netcat_payload() {
+        (( $# == 3 )) || {
+            echo 'Expected one payload filename, one IP address, and one port number.' 1>&2
+            return 1
+        }
+        local payload_filename="${1}" ip_address="${2}" port_number="${3}"
+
+        # If this file does *NOT* exist, fail.
+        [[ -f "${payload_filename}" ]] || {
+            echo "Payload filename \"${payload_filename}\" not found." 1>&2
+            return 1
+        }
+        # Else, this file exists.
+
+        # Make it so for great justice. Dismantled, this is:
+        # * "-w {timeout}", timing this operation out after the passed number of
+        #   seconds of connection inactivity from the remote machine.
+        command nc -w 60 \
+            "${ip_address}" "${port_number}" < "${payload_filename}"
+    }
+fi
+
+# ....................{ FUNCTIONS ~ command : python       }....................
+# If Anaconda is installed to a predetermined user-specific directory...
+if [[ -d "${HOME}/py/conda" ]]; then
+    # str +python.enable_conda()
+    #
+    # Enable Anaconda. Specifically, this function:
+    # * Prepends the Anaconda-specific executables directory (e.g.,
+    #   "~/py/conda/bin/") to the current ${PATH}, temporarily overriding all
+    #   system-wide Python executables with user-specific executables of the
+    #   same name provided by Anaconda.
+    # * Evaluates a number of shell scripts, including:
+    #   * "~/py/conda/etc/profile.d/conda.sh".
+    #   * "~/py/conda/etc/profile.d/mamba.sh".
+    #
+    # Note that there currently exists *NO* corresponding
+    # +python.disable_conda() function. The effects of calling this function are
+    # temporary and thus trivially undone by simply opening a new terminal.
+    function +python.enable_conda() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        # Inform the user of incoming strangeness with respect to Python.
+        echo 'Enabling (Ana|Mini)conda integration...'
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$("${HOME}/py/conda/bin/conda" 'shell.bash' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/${HOME}/py/conda/etc/profile.d/conda.sh" ]; then
+        . "/${HOME}/py/conda/etc/profile.d/conda.sh"
+    else
+        export PATH="/${HOME}/py/conda/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+
+if [ -f "/${HOME}/py/conda/etc/profile.d/mamba.sh" ]; then
+    . "/${HOME}/py/conda/etc/profile.d/mamba.sh"
+fi
+# <<< conda initialize <<<
+
+        # Display metadata on the active Python interpreter for disambiguity.
+        echo
+        echo 'Python interpreter:'
+        command python -c 'import sys; print(sys.executable)'
+        echo 'Python third-party packages director(y|ies):'
+        command python -c 'import site; print(site.getsitepackages())'
+        echo
+
+        # If the current shell is zsh *AND* a zsh-specific shell script
+        # implementing additional Anaconda-specific functionality required for
+        # development of in-house projects exists (e.g., our core
+        # +ionyou.update() function), evaluate that script as well.
+        local IONYOU_CONDA_SCRIPT="${HOME}/py/ionyou/conda/dev/environment_funcs.zsh"
+        [[ -n "${IS_ZSH}" && -f "${IONYOU_CONDA_SCRIPT}" ]] &&
+            source "${IONYOU_CONDA_SCRIPT}"
+    }
+fi
+
+# ....................{ FUNCTIONS ~ command : text         }....................
+# If the "base64" command is in the current ${PATH}...
+if +command.is base64; then
+    # str +text.decode_base64(str text_base64_encoded)
+    #
+    # Decode the passed base64-encoded string.
+    function +text.decode_base64() {
+        (( $# == 1 )) || {
+            echo 'Expected one base64-encoded string.' 1>&2
+            return 1
+        }
+
+        # Make it so for great justice.
+        echo "${1}" | command base64 --decode -
+    }
+fi
+
+# ....................{ FUNCTIONS ~ command : arch : zip   }....................
+#FIXME: Create a 64-bit WINE prefix command.
+# If "winecfg" is in the current ${PATH}...
+if +command.is winecfg; then
+    # void +wine.make_prefix_64(str prefix_dirname)
+    #
+    # Create a new 64-bit WINE prefix rooted at the directory with the passed
+    # dirname.
+    function +wine.make_prefix_64() {
+        (( $# == 1 )) || {
+            echo 'Expected one WINE prefix dirname.' 1>&2
+            return 1
+        }
+
+        # When our one-liner powers combine!
+        WINEPREFIX="${1}" command winecfg
+    }
+fi
+
+# ....................{ FUNCTIONS ~ command : x.org        }....................
 # If "startx" is in the current ${PATH}...
 if +command.is startx; then
     # str +x()
@@ -974,33 +1180,42 @@ if [[ -d /usr/src/linux ]]; then
             return 1
         }
 
-        # Change to the directory defining the current kernel.
-        pushd /usr/src/linux
+        # Isolate all requisite steps to a subshell process. If this is *NOT*
+        # done (i.e., if these steps are performed in the current shell
+        # process), then suspending this process would:
+        # * Erroneously suspend only the current low-level step being performed
+        #   rather than the entire high-level process.
+        # * All subsequent steps that have yet to be performed would
+        #   prematurely fail with non-zero exit status.
+        (
+            # Change to the directory defining the current kernel.
+            pushd /usr/src/linux
 
-        echo 'Mounting boot partition...'
-        mount /boot
+            echo 'Mounting boot partition...'
+            mount /boot
 
-        echo '(Re)compiling kernel...'
-        make -j3
+            echo '(Re)compiling kernel...'
+            make -j3
 
-        echo
-        echo '(Re)compiling kernel modules (first-party)...'
-        make -j3 modules_install
+            echo
+            echo '(Re)compiling kernel modules (first-party)...'
+            make -j3 modules_install
 
-        echo
-        echo '(Re)compiling kernel modules (third-party)...'
-        emerge @module-rebuild
+            echo
+            echo '(Re)compiling kernel modules (third-party)...'
+            emerge @module-rebuild
 
-        echo
-        echo '(Re)installing kernel...'
-        make install
+            echo
+            echo '(Re)installing kernel...'
+            make install
 
-        # Install the current GRUB2 configuration to the appropriate partition.
-        echo
-        +grub.install
+            # Install the current GRUB2 configuration to the appropriate partition.
+            echo
+            +grub.install
 
-        # Revert to the prior directory.
-        popd
+            # Revert to the prior directory.
+            popd
+        )
     }
 fi
 
@@ -1201,11 +1416,13 @@ alias lram='+dir.list_subdirs_mtime_depth ~/pub/audio/metal 3'
 +command.is htop && alias ht='htop'
 +command.is ipython3 && alias ipy='ipython3'
 +command.is links && alias li='links'
++command.is mangal && alias ml='mangal'
 +command.is ncdu && alias du='ncdu'
 +command.is ncmpcpp && alias n='ncmpcpp'  # the command whose name nobody knows
 +command.is jupyter-notebook && alias nb='python3.9 -m notebook'
 +command.is perldoc && alias poc='perldoc'
 +command.is ping && alias pi='ping'
++command.is pkgdev && alias pd='pkgdev'
 
 # CLI-specific one-to-many abbreviations.
 if +command.is dmesg; then
@@ -1300,13 +1517,61 @@ if +command.is emerge; then
             return 1
         }
 
-        echo 'Bumping ebuild repositories...'
-        emerge --sync
+        # Isolate all requisite steps to a subshell process. If this is *NOT*
+        # done (i.e., if these steps are performed in the current shell
+        # process), then suspending this process would:
+        # * Erroneously suspend only the current low-level step being performed
+        #   rather than the entire high-level process.
+        # * All subsequent steps that have yet to be performed would
+        #   prematurely fail with non-zero exit status.
+        (
+            echo 'Bumping ebuild repositories...'
+            command emerge --sync
+            echo
 
+            +gentoo.emerge_world
+            echo
+        )
+    }
+
+    # void +gentoo.emerge_world()
+    #
+    # Automagically update all packages in both the @world and
+    # @preserved-rebuild package sets.
+    function +gentoo.emerge_world() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        # Update all locally installed packages that were previously installed
+        # via an explicit invocation of the "emerge" command and thus implicitly
+        # added by Portage to the @world set.
         echo 'Bumping @world packages...'
-        emw
+        command emerge \
+            --deep \
+            --newrepo \
+            --newuse \
+            --update \
+            --verbose \
+            @world
+        echo
+
+        # Update all locally installed packages requiring obsolete libraries.
+        echo 'Bumping @preserved-rebuild packages...'
+        command emerge --exclude dev-lang/python @preserved-rebuild
+        echo
 
         +gentoo.bump_eselect
+        echo
+
+        # Update all shell variables updated by prior bumping. Note that this
+        # exact command is advised when bumping numerous modules.
+        echo 'Bumping shell variables...'
+        . /etc/profile
+
+        # Override system-wide shell variables with user-specific variants.
+        . ~/.bashrc
     }
 
     # void +gentoo.bump_eselect()
@@ -1372,11 +1637,6 @@ if +command.is emerge; then
                     set "${eselect_module_newest_index}"
             fi
         done
-
-        # Update all shell variables updated by prior bumping. Note that this
-        # exact command is advised when bumping numerous modules.
-        echo 'Bumping shell variables...'
-        . /etc/profile
     }
 
     # Unconditional Gentoo Linux-specific aliases.
@@ -1392,20 +1652,12 @@ if +command.is emerge; then
     # temporarily disabled, for packages failing under that caching.
     alias emnocc='FEATURES="-ccache" emerge'
 
-    # Alias "emw" to update the following *WITHOUT* updating Portage first:
-    #
-    # * All locally installed packages with available updates.
-    # * All locally installed packages requiring obsolete preserved libraries.
-    alias emw='emerge \
-        --deep \
-        --newrepo \
-        --newuse \
-        --update \
-        --verbose \
-        @world && emerge @preserved-rebuild'
-
     # Alias "emsw" to update both Portage *AND* all locally installed packages.
     alias emsw='+gentoo.bump_world'
+
+    # Alias "emw" to update all locally installed packages *WITHOUT* updating
+    # Portage first.
+    alias emw='+gentoo.emerge_world'
 
     # Conditional Gentoo Linux-specific aliases.
     +command.is dispatch-conf && alias di='dispatch-conf'
@@ -1485,6 +1737,7 @@ fi
 +command.is assistant    && alias ass='assistant &!'      # Don't judge me.
 +command.is audacity     && alias aud='audacity &!'
 +command.is chromium     && alias ch='chromium -incognito &!'
++command.is citra-qt     && alias cq='citra-qt &!'
 +command.is clementine   && alias cl='clementine &!'
 +command.is deadbeef     && alias de='deadbeef &!'
 +command.is deluge-gtk   && alias dg='deluge-gtk &!'
@@ -1517,6 +1770,27 @@ if +command.is calibre; then
     export CALIBRE_USE_DARK_PALETTE=1
     export CALIBRE_USE_SYSTEM_THEME=0
 fi
+
+# ....................{ ALIASES ~ gui : args              }....................
+# GUI-specific abbreviations accepting arguments and thus *NOT* trivially
+# definable as one-line shell aliases, typically suffixed by "&!". (See above.)
++command.is antimicrox && {
+    alias vl='+video.queue'
+
+    # void +video.queue()
+    #
+    # Queue all of the passed video files (in the passed order) for sequential
+    # playing with the VLC GUI.
+    function +video.queue() {
+        (( $# >= 1 )) || {
+            echo 'Expected one or more video filenames.' 1>&2
+            return 1
+        }
+
+        # Trivial one-liners for ultimate justice.
+        command vlc "${@}" &!
+    }
+}
 
 # ....................{ COMPLETIONS                       }....................
 if [[ -n "${IS_ZSH}"  ]]; then

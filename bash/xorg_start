@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
-# ====================[ xorg_start                        ]====================
+# ====================[ xorg_start                         ]====================
 #
-# --------------------( LICENSE                           )--------------------
+# --------------------( LICENSE                            )--------------------
 # Copyright 2008-2018 by Cecil Curry.
 # See "LICENSE" for further details.
 #
-# --------------------( SYNOPSIS                          )--------------------
+# --------------------( SYNOPSIS                           )--------------------
 # User-specific X.org startup script, typically run in lieu of "startx".
 
-# ....................{ PATHS                             }....................
+# ....................{ PATHS                              }....................
 # Absolute filename of the logfile to append all X.org console output to.
 XORG_LOG_FILENAME="${HOME}/.startx"
 
-# ....................{ OUTPUT                            }....................
+# ....................{ OUTPUT                             }....................
 # Print a welcome message to stdout.
 echo 'Starting X.org...'
 
 # Log a welcome message to the logfile defined above.
 echo -e "\n[xorg_start] Starting X.org..." &>>"${XORG_LOG_FILENAME}"
 
-# ....................{ MAIN                              }....................
+# ....................{ MAIN                               }....................
 # Launch the X.org session defined by the "/etc/env.d/90xsession" file.
 # Dismantled, this is:
 #
