@@ -1,9 +1,9 @@
-# ====================[ .gitconfig                        ]====================
+# ====================[ .gitconfig                         ]====================
 #
-# --------------------( SYNOPSIS                          )--------------------
+# --------------------( SYNOPSIS                           )--------------------
 # Git dotfile, globally configuring git for the current user.
 
-# ....................{ INCLUDES                          }....................
+# ....................{ INCLUDES                           }....................
 # List of the absolute or relative paths of all files conforming to the syntax
 # of this file to be imported into this file, defined as one "path" entry for
 # each such file. Note that "path" entries:
@@ -23,11 +23,11 @@
     # The contents of this file should resemble:
     #
     #     [user]
-    #         name = <ENTER NAME UNQUOTED HERE>
+    #         name = <ENTER USERNAME UNQUOTED HERE>
     #         email = <ENTER E-MAIL UNQUOTED HERE>
     path = ~/.gitconfig.d/user.cfg
 
-# ....................{ OTHER                             }....................
+# ....................{ OTHER                              }....................
 [alias]
     a = add
     aa = add --all

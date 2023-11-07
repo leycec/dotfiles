@@ -172,12 +172,12 @@ function +path.append() {
 # * "/usr/local/bin", containing custom system-wide commands.
 # * "${HOME}/bash", containing Bash-specific scripts.
 # * "${HOME}/zsh", containing zsh-specific scripts.
-# * "${HOME}/py/conda/bin", containing Miniconda3-specific commands. Note that
+# * "${HOME}/py/conda/bin", containing Anaconda-specific commands. Note that
 #   appending (rather than prepending) this directory ensures system-wide
 #   commands (e.g., "python3") take precedence over Miniconda3-specific
 #   commands of the same basename.
 # echo "PATH=${PATH} (before)"
-+path.append /usr/local/bin ~/bash ~/zsh  #~/py/conda/bin
++path.append /usr/local/bin ~/bash ~/zsh  # ~/py/conda/bin
 # echo "PATH=${PATH} (after)"
 
 # ....................{ GLOBALS ~ shell : path ~ perl      }....................
@@ -228,8 +228,11 @@ _IS_LOGIN=
 if [[ -n "${IS_ZSH}" ]]; then
     export SAVEHIST=1000
 
-    # Append rather than overwrite the history file.
-    setopt appendhistory
+    # Dismantled, this is:
+    # * "appendhistory", appending rather than overwrite the history file.
+    # * "histignorealldups", removing older commands previously added to the
+    #   history list when those older commands duplicate newer commands.
+    setopt appendhistory histignorealldups
 
     # Record whether this is a login shell or not.
     [[ -o login ]] && _IS_LOGIN=1
@@ -804,6 +807,27 @@ if +command.is mogrify; then
                 "${trg_filename}"
         done
     }
+
+    # str +tiff.convert_to_jpg_recursive()
+    #
+    # Recursively convert all TIFF images under the current directory to JPEG
+    # format in a safe manner preserving the original images as is.
+    function +tiff.convert_to_jpg_recursive() {
+        (( $# == 0 )) || {
+            echo "Expected no arguments, but received ${#}." 1>&2
+            return 1
+        }
+
+        echo 'Converting all TIFF images under current directory to JPEG format...'
+
+        # Make it so, Ensign.
+        local tiff_filename jpeg_filename
+        for   tiff_filename (**/*.tif(f|)(.)) {
+            jpeg_filename="${tiff_filename%.tif(f|)}.jpg"
+            echo "  ${tiff_filename} -> ${jpeg_filename}"
+            command convert -quality 50 "${tiff_filename}" "${jpeg_filename}"
+        }
+    }
 fi
 
 # ....................{ FUNCTIONS ~ command : image : jpg  }....................
@@ -903,6 +927,53 @@ if +command.is pngquant; then
 fi
 
 # ....................{ FUNCTIONS ~ command : net          }....................
+# If the "curl" command is in the current ${PATH}...
+if +command.is curl; then
+    # void +curl.download(str url, str filename = '')
+    #
+    # Repeatedly attempt to download the remote file referenced by the passed
+    # URL to the passed local filename (defaulting to the current working
+    # directory suffixed by the basename of this URL if unpassed) until this
+    # file is successfully downloaded.
+    function +curl.download() {
+        (( $# == 1 || $# == 2 )) || {
+            echo 'Expected one input URL and one optional output filename.' 1>&2
+            return 1
+        }
+
+        local url="${1}"
+        local -a curl_command; curl_command=(
+            command curl
+            --location
+            --continue-at -
+            --retry 999999
+            --retry-delay 5
+        )
+
+        # If passed an optional output filename, append an option saving this
+        # download to that filename.
+        if (( $# == 2 )); then
+            curl_command=( "${curl_command[@]}" --output "${2}" )
+        # Else, append an option saving this download to a filename
+        # concatenating the current working directory and this URL's basename.
+        else
+            curl_command=( "${curl_command[@]}" --remote-name )
+        fi
+
+        # Note that passing even "--retry*" options (as above) is insufficient
+        # to guarantee that curl repeatedly retries the download until
+        # successful. Indeed, without further guidance, curl routinely fails
+        # with errors like:
+        #     curl: (56) Recv failure: Connection reset by peer
+        #
+        # So, we additionally forcefully rerun curl until curl reports success.
+        until "${curl_command[@]}" "${url}"; do
+            echo 'Forcefully resuming prematurely aborted download...' 1>&2
+            sleep 5
+        done
+    }
+fi
+
 # If the "nc" (i.e., "netcat") command is in the current ${PATH}...
 if +command.is nc; then
     # str +net.inject_netcat_payload(
@@ -934,6 +1005,38 @@ if +command.is nc; then
 fi
 
 # ....................{ FUNCTIONS ~ command : python       }....................
+# If Python is in the current ${PATH}...
+if +command.is python3; then
+    # str +python.profile_snippet(str setup_code, str profile_code)
+    #
+    # Profile (i.e., time) the second passed Python snippet by running that
+    # snippet repeatedly *AFTER* running the first passed Python snippet once
+    # via the stdlib "timeit" module. As examples:
+    #     # Time the conversion of a NumPy array to a Python list:
+    #     $ timeit 'import numpy as np; array = np.array(range(1000))' 'list(array)'
+    #     Profiling code snippets...
+    #     10000 loops, best of 5: 29.4 usec per loop
+    #
+    #     # Time the conversion of a NumPy array to a Python set:
+    #     $ timeit 'import numpy as np; array = np.array(range(1000))' 'set(array)'
+    #     Profiling code snippets...
+    #     5000 loops, best of 5: 43.2 usec per loop
+    function +python.profile_snippet() {
+        (( $# == 2 )) || {
+            echo 'Expected one setup code string and one non-setup code string: e.g.,'
+            echo '    timeit "import numpy as np; array = np.array(range(1000))" "list(array)"'
+            return 1
+        }
+
+        code_setup="${1}"
+        code_timed="${2}"
+
+        echo 'Profiling code snippets...'
+        command python3 -m timeit -s "${code_setup}" "${code_timed}"
+    }
+fi
+
+# ....................{ FUNCTIONS ~ command : python : ana }....................
 # If Anaconda is installed to a predetermined user-specific directory...
 if [[ -d "${HOME}/py/conda" ]]; then
     # str +python.enable_conda()
@@ -961,7 +1064,7 @@ if [[ -d "${HOME}/py/conda" ]]; then
 
 # >>> conda initialize >>>
 # !! Contents within this block are managed by 'conda init' !!
-__conda_setup="$("${HOME}/py/conda/bin/conda" 'shell.bash' 'hook' 2> /dev/null)"
+__conda_setup="$("${HOME}/py/conda/bin/conda" 'shell.zsh' 'hook' 2> /dev/null)"
 if [ $? -eq 0 ]; then
     eval "$__conda_setup"
 else
@@ -978,13 +1081,9 @@ if [ -f "/${HOME}/py/conda/etc/profile.d/mamba.sh" ]; then
 fi
 # <<< conda initialize <<<
 
-        # Display metadata on the active Python interpreter for disambiguity.
-        echo
-        echo 'Python interpreter:'
-        command python -c 'import sys; print(sys.executable)'
-        echo 'Python third-party packages director(y|ies):'
-        command python -c 'import site; print(site.getsitepackages())'
-        echo
+        # Alias "python3" to "python". Oddly, Mambaforge defines the former but
+        # *NOT* the latter -- the opposite of what Mambaforge should be doing.
+        alias python3=python
 
         # If the current shell is zsh *AND* a zsh-specific shell script
         # implementing additional Anaconda-specific functionality required for
@@ -993,7 +1092,16 @@ fi
         local IONYOU_CONDA_SCRIPT="${HOME}/py/ionyou/conda/dev/environment_funcs.zsh"
         [[ -n "${IS_ZSH}" && -f "${IONYOU_CONDA_SCRIPT}" ]] &&
             source "${IONYOU_CONDA_SCRIPT}"
+
+        # Display metadata on the active Python interpreter for disambiguity.
+        echo
+        echo 'Python interpreter: '$(command python --version)' ['$(command python -c 'import sys; print(sys.executable)')']'
+        echo 'Python site packages: '$(command python -c 'import site; print(site.getsitepackages())')
+        echo
     }
+
+    # If the current user is "pietakio", enable Anaconda by default.
+    [[ "${USER}" == 'pietakio' ]] && +python.enable_conda
 fi
 
 # ....................{ FUNCTIONS ~ command : text         }....................
@@ -1010,6 +1118,54 @@ if +command.is base64; then
 
         # Make it so for great justice.
         echo "${1}" | command base64 --decode -
+    }
+fi
+
+# ....................{ FUNCTIONS ~ command : text         }....................
+# If the "gs" (i.e., GhostScript) command is in the current ${PATH}...
+if +command.is gs; then
+    # str +pdf.compact(str src_filename, str trg_filename)
+    #
+    # Reduce the filesize of the passed source PDF into a new target PDF: e.g.,
+    #     $ compact_pdf.sh input.pdf output.pdf
+    function +pdf.compact() {
+        (( $# == 2 )) || {
+            echo "Expected one source filename and one target filename." 1>&2
+            return 1
+        }
+
+        # Input and output PDF filenames.
+        local input_filename=${1}
+        local output_filename=${2}
+
+        # If the input files does *NOT* exist, fail.
+        [[ -f "${input_filename}" ]] || {
+            echo "Input filename \"${input_filename}\" not found." 1>&2
+            return 1
+        }
+
+        # If either the input or output files are *NOT* PDFs, fail.
+        [[ "${input_filename}" == *.pdf ]] || {
+            echo "Input filename \"${input_filename}\" not a PDF." 1>&2
+            return 1
+        }
+        [[ "${output_filename}" == *.pdf ]] || {
+            echo "Output filename \"${output_filename}\" not a PDF." 1>&2
+            return 1
+        }
+
+        # Reduce this input PDF into this output PDF.
+        echo "Compacting \"${input_filename}\" to \"${output_filename}\"..."
+        command gs\
+            -sDEVICE=pdfwrite\
+            -dCompatibilityLevel=1.4\
+            -dUseCIEColor\
+            -dPDFSETTINGS=/printer\
+            -dNOPAUSE\
+            -dQUIET\
+            -dBATCH\
+            -sOutputFile="${output_filename}"\
+            "${input_filename}"
     }
 fi
 
@@ -1792,10 +1948,30 @@ fi
     }
 }
 
-# ....................{ COMPLETIONS                       }....................
+# ....................{ COMPLETIONS                        }....................
 if [[ -n "${IS_ZSH}"  ]]; then
     # Enable all default completions.
     zstyle :compinstall filename "${HOME}/.zshrc"
+
+    # Enable all Ubuntu-specific default completions. Since Ubuntu enables these
+    # by default for new "zsh" installs, we politely assume they are sane.
+    zstyle ':completion:*' auto-description 'specify: %d'
+    zstyle ':completion:*' completer _expand _complete _correct _approximate
+    zstyle ':completion:*' format 'Completing %d'
+    zstyle ':completion:*' group-name ''
+    zstyle ':completion:*' menu select=2
+    eval "$(dircolors -b)"
+    zstyle ':completion:*:default' list-colors ${(s.:.)LS_COLORS}
+    zstyle ':completion:*' list-colors ''
+    zstyle ':completion:*' list-prompt %SAt %p: Hit TAB for more, or the character to insert%s
+    zstyle ':completion:*' matcher-list '' 'm:{a-z}={A-Z}' 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=* l:|=*'
+    zstyle ':completion:*' menu select=long
+    zstyle ':completion:*' select-prompt %SScrolling active: current selection at %p%s
+    zstyle ':completion:*' use-compctl false
+    zstyle ':completion:*' verbose true
+
+    zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
+    zstyle ':completion:*:kill:*' command 'ps -u $USER -o pid,%cpu,tty,cputime,cmd'
 
     # Initialize the completion subsystem.
     autoload -Uz compinit
@@ -1817,14 +1993,14 @@ elif [[ -n "${IS_BASH}" ]]; then
     [[ -f ~/.fzf.bash ]] && source ~/.fzf.bash
 fi
 
-# ....................{ CUSTOMIZATIONS                    }....................
+# ....................{ CUSTOMIZATIONS                     }....................
 #FIXME; Sadly, the following command is Ubuntu-specific and hence fails under
 #Gentoo with the following inscrutable error:
 #    -bash: eval: line 171: syntax error near unexpected token `newline'
 #    -bash: eval: line 171: `Usage: lesspipe <file>'
 #The culprit is, of course, "lesspipe". As there appears to exist *NO*
 #standardized "lesspipe" command, each Linux distribution ships its own
-#distribution-specific mutuall-incompatible variant of "lesspipe". Generalizing
+#distribution-specific mutually-incompatible variant of "lesspipe". Generalizing
 #this command to transparently support all relevant Linux distributions would
 #thus require:
 #
