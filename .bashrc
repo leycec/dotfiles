@@ -177,7 +177,7 @@ function +path.append() {
 #   commands (e.g., "python3") take precedence over Miniconda3-specific
 #   commands of the same basename.
 # echo "PATH=${PATH} (before)"
-+path.append /usr/local/bin ~/bash ~/zsh  # ~/py/conda/bin
++path.append /usr/local/bin ~/bin ~/bash ~/zsh  # ~/py/conda/bin
 # echo "PATH=${PATH} (after)"
 
 # ....................{ GLOBALS ~ shell : path ~ perl      }....................
@@ -1098,6 +1098,26 @@ fi
         echo 'Python interpreter: '$(command python --version)' ['$(command python -c 'import sys; print(sys.executable)')']'
         echo 'Python site packages: '$(command python -c 'import site; print(site.getsitepackages())')
         echo
+
+        # If Jupyter is in the current ${PATH}...
+        #
+        # Note that this function is intentionally defined *AFTER* enabling
+        # Anaconda, as Jupyter is typically installed in Anaconda environments.
+        if +command.is jupyter; then
+            # str +jupyter()
+            #
+            # Run the Jupyter Lab daemon in the current terminal.
+            function +jupyter() {
+                (( $# == 0 )) || {
+                    echo 'Expected no arguments.'
+                    return 1
+                }
+
+                # Run the Jupyter Lab daemon under this interpreter.
+                echo '[DEVELOPER] Running "conda"-based Jupyter Lab daemon...'
+                command jupyter lab --notebook-dir="${HOME}/py/notebook"
+            }
+        fi
     }
 
     # If the current user is "pietakio", enable Anaconda by default.
