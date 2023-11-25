@@ -704,6 +704,82 @@ if +command.is shnsplit; then
     }
 fi
 
+# ....................{ FUNCTIONS ~ command : code         }....................
+# If the third-party "git" command is in the current ${PATH}...
+if +command.is git; then
+    # str +git.revive_removed_path(str pathname)
+    #
+    # Revive (i.e., restore, resurrect) the previously removed path with the
+    # passed relative pathname from a prior commit in the "git" repository
+    # managing the current working directory (CWD) if any *OR* fail otherwise
+    # (i.e., if the CWD is *NOT* managed by a "git" repository).
+    #
+    # See also this StackOverflow answer strongly inspiring this function:
+    #     https://stackoverflow.com/a/1113140/2809027
+    function +git.revive_removed_path() {
+        (( $# == 1 )) || {
+            echo 'Expected one relative pathname.' 1>&2
+            return 1
+        }
+
+        local pathname_removed="${1}" commit_removed
+
+        # Most recent commit containing this relative pathname if any *OR* fail
+        # otherwise.
+        echo \
+            "Searching for git commit providing previously removed" \
+            "git-managed file \"${pathname_removed}\"..."
+        commit_removed="$(command git rev-list \
+            -n 1 HEAD -- "${pathname_removed}")" || {
+            echo \
+                "Previously removed git-managed file" \
+                "\"${pathname_removed}\" not found." 1>&2
+            return 1
+        }
+
+        # Revive this path.
+        #
+        # Note that the "^" character *MUST* be explicitly quote-protected to
+        # prevent interpretation under various shells (e.g., fish, zsh).
+        echo \
+            "Restoring previously removed" \
+            "git-managed file \"${pathname_removed}\"..."
+        command git checkout "${commit_removed}^" -- "${pathname_removed}"
+    }
+fi
+
+# If the third-party "pygmentize" command from the Python-friendly "pygments"
+# package is in the current ${PATH}...
+if +command.is pygmentize; then
+    # str +python.highlight()
+    #
+    # Syntactically highlight the string of one or more Python statements passed
+    # as standard input (typically using a heredoc) via the "pygments" package
+    # if "pygments" successfully parses that string as Python *OR* report
+    # failure (i.e., if "pygments" fails to parse that string as Python): e.g.,
+    #     +python.highlight << 'EOF'
+    #     <copy-paste code here>
+    #     EOF
+    #
+    # This function is *incredibly* useful for resolving non-human-readable
+    # Sphinx syntax highlighting warnings resembling:
+    #     WARNING: Could not lex literal_block as "python3". Highlighting
+    #     skipped.
+    function +python.highlight() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        # We had joy, we had fun, we had seasons in the... pygments! Dismantled,
+        # this is:
+        # * "-l python3", lexing (i.e., parsing) standard input as Python code.
+        # * "-F raiseonerror", raising a fatal exception on lexing errors.
+        # * "-v", printing a detailed traceback for that exception.
+        command pygmentize -l python3 -F raiseonerror -v
+    }
+fi
+
 # ....................{ FUNCTIONS ~ command : image        }....................
 #FIXME: Create similar ImageMagick-based commands for:
 #* Reduction to grayscale. Curiously, it would seem that there are a countably
@@ -872,6 +948,8 @@ if +command.is jpegoptim; then
         # For each passed filename...
         local src_filename trg_filename
         for   src_filename in "${@[1,-2]}"; do
+            print "Optimizing \"${src_filename}\" to quality ${trg_quality}..."
+
             # Target filename derived from this source filename.
             trg_filename="${src_filename%.jpg}-optim.jpg"
 
@@ -1565,7 +1643,7 @@ alias cr='cp -R'
 alias gi='git'
 alias in='info'
 alias le='less'
-alias ll='l -l'
+alias ll='ls -l'
 alias lr='+dir.list_recursive'
 alias md='mkdir'
 alias mo='mount'
@@ -1598,7 +1676,6 @@ alias lram='+dir.list_subdirs_mtime_depth ~/pub/audio/metal 3'
 +command.is jupyter-notebook && alias nb='python3.9 -m notebook'
 +command.is perldoc && alias poc='perldoc'
 +command.is ping && alias pi='ping'
-+command.is pkgdev && alias pd='pkgdev'
 
 # CLI-specific one-to-many abbreviations.
 if +command.is dmesg; then
@@ -1608,6 +1685,11 @@ fi
 
 if +command.is ip; then
     alias ipa='ip addr'
+fi
+
+if +command.is pkgdev; then
+    alias pd='pkgdev'
+    alias pdm='pkgdev manifest'
 fi
 
 if +command.is vcsh; then
@@ -1907,8 +1989,8 @@ fi
 # GUI-specific abbreviations, typically suffixed by "&!" to permit windowed
 # applications to be spawned in a detached manner from the current shell.
 +command.is antimicrox && {
-    alias anq='antimicrox &!'
-    alias and='antimicrox --daemon --profile ~/yml/kiseki-linux/lutris/2004-sora_no_kiseki_fc/sora-no-kiseki-fc-ps4.gamecontroller.amgp &!'
+    alias ax='antimicrox &!'
+    # alias and='antimicrox --daemon --profile ~/yml/kiseki-linux/lutris/2004-sora_no_kiseki_fc/sora-no-kiseki-fc-ps4.gamecontroller.amgp &!'
 }
 +command.is assistant    && alias ass='assistant &!'      # Don't judge me.
 +command.is audacity     && alias aud='audacity &!'
@@ -1922,7 +2004,9 @@ fi
 +command.is filelight    && alias fl='filelight &!'
 +command.is font-manager && alias fm='font-manager &!'
 +command.is geeqie       && alias gq='geeqie &!'
-+command.is gimp         && alias gp='gimp &!'
++command.is gimp         && alias gm='gimp &!'
++command.is gparted      && alias gp='gparted &!'
++command.is libreoffice  && alias lo='libreoffice &!'
 +command.is lutris       && alias lu='lutris &!'
 +command.is mcomix       && alias mc='mcomix &!'
 +command.is nicotine     && alias ni='nicotine &!'
