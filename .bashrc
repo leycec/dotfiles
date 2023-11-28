@@ -898,11 +898,12 @@ if +command.is mogrify; then
 
         # Make it so, Ensign.
         local tiff_filename jpeg_filename
-        for   tiff_filename (**/*.tif(f|)(.)) {
+        for   tiff_filename in **/*.tiff*; do
+        # for   tiff_filename in (**/*.tif(f|)(.)); do
             jpeg_filename="${tiff_filename%.tif(f|)}.jpg"
             echo "  ${tiff_filename} -> ${jpeg_filename}"
             command convert -quality 50 "${tiff_filename}" "${jpeg_filename}"
-        }
+        done
     }
 fi
 
