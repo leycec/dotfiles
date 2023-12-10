@@ -134,8 +134,8 @@ function +path.append() {
     local dirname
     for   dirname; do
         # Strip the trailing directory separator if any from this dirname,
-        # reducing this dirname to the canonical form expected by the
-        # test for uniqueness performed below.
+        # reducing this dirname to the canonical form expected by the test for
+        # uniqueness performed below.
         dirname="${dirname%/}"
 
         # If this dirname is either relative, duplicate, or nonextant, then
@@ -327,7 +327,36 @@ fi
 #     https://github.com/gentoo/sci/blob/master/CONTRIBUTING.md
 export ECHANGELOG_USER="Cecil Curry <leycec@gmail.com>"
 
-# ....................{ FUNCTIONS ~ dir                    }....................
+# ....................{ FUNCTIONS ~ path                   }....................
+# str +path.canonicalize(str pathname)
+#
+# Canonicalize the passed path (i.e., convert this path from possibly relative
+# to certainly absolute) *WITHOUT* resolving intermediary symbolic links. This
+# implementation is strongly inspired by this StackOverflow post:
+#     https://stackoverflow.com/a/3373298/2809027
+function +path.canonicalize() {
+    (( $# == 1 )) || {
+        echo 'Expected one pathname.' 1>&2
+        return 1
+    }
+
+    # Leverage Python to perform this rote task.
+    #
+    # Note that there exist a multitude of alternatives -- all worse in various
+    # ways. These include:
+    # * Solutions running the third-party "readlink" and "readpath" commands.
+    #   Unfortunately, these commands are *NOT* guaranteed (or even likely) to
+    #   be available -- especially under outlier platforms like vanilla macOS
+    #   and the *BSD family. Oddly, some variant of Python is basically
+    #   guaranteed to be available everywhere.
+    #
+    # It's both fascinating and sad that POSIX-compliant shells fail to support
+    # this out-of-the-box. Unix: "Still imperfect after all these years."
+    command python \
+        -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "${1}"
+}
+
+# ....................{ FUNCTIONS ~ path : dir             }....................
 # str +dir.list_recursive(str dirname1, ...)
 #
 # Recursively list all transitive subdirectories of all directories with the
@@ -1269,9 +1298,37 @@ if +command.is gs; then
 fi
 
 # ....................{ FUNCTIONS ~ command : arch : zip   }....................
-#FIXME: Create a 64-bit WINE prefix command.
 # If "winecfg" is in the current ${PATH}...
 if +command.is winecfg; then
+    # void +wine.conf_prefix(str prefix_dirname)
+    #
+    # Configure the existing 32- or 64-bit WINE prefix rooted at the directory
+    # with the passed dirname.
+    function +wine.conf_prefix() {
+        (( $# == 1 )) || {
+            echo 'Expected one WINE prefix dirname.' 1>&2
+            return 1
+        }
+
+        # Canonicalize this dirname. Why? Because WINE explicitly prohibits
+        # relative dirnames: e.g.,
+        #     $ WINEPREFIX="." command winecfg
+        #     wine: invalid directory . in WINEPREFIX: not an absolute path
+        local prefix_dirname; prefix_dirname="$(+path.canonicalize "${1}")"
+
+        # If this WINE prefix directory does *NOT* exist, fail.
+        [[ -d "${prefix_dirname}" ]] || {
+            echo 'WINE prefix directory "'${prefix_dirname}'" not found.' 1>&2
+            return 1
+        }
+        # Else, this WINE prefix directory exists.
+
+        # Configure this WINE prefix.
+        echo 'Configuring WINE prefix "'${prefix_dirname}'"...'
+        +wine.make_prefix_64 "${@}"
+    }
+
+
     # void +wine.make_prefix_64(str prefix_dirname)
     #
     # Create a new 64-bit WINE prefix rooted at the directory with the passed
@@ -1282,8 +1339,59 @@ if +command.is winecfg; then
             return 1
         }
 
+        # Canonicalize this dirname. Why? Because WINE explicitly prohibits
+        # relative dirnames: e.g.,
+        #     $ WINEPREFIX="." command winecfg
+        #     wine: invalid directory . in WINEPREFIX: not an absolute path
+        local prefix_dirname; prefix_dirname="$(+path.canonicalize "${1}")"
+        echo 'Creating WINE prefix "'${prefix_dirname}'"...'
+
         # When our one-liner powers combine!
-        WINEPREFIX="${1}" command winecfg
+        WINEPREFIX="${prefix_dirname}" command winecfg
+    }
+
+
+    # void +wine.make_prefix_32(str prefix_dirname)
+    #
+    # Create a new 32-bit WINE prefix rooted at the directory with the passed
+    # dirname.
+    function +wine.make_prefix_32() {
+        # That's how the Unix shell was won.
+        WINEARCH='win32' +wine.make_prefix_64 "${@}"
+    }
+
+
+    #FIXME: Improve, please. Ideally, it shouldn't be necessary to manually
+    #specify the WINE prefix dirname. Instead, this script should be capable of
+    #simply iterating up directories from the passed "executable_filename" until
+    #it discovers a directory whose structure resembles that of a WINE prefix.
+
+    # void +wine.run(str prefix_dirname, str executable_filename)
+    #
+    # Run the Windows-specific executable with the passed filename under the
+    # WINE prefix rooted at the directory with the passed dirname.
+    function +wine.run() {
+        (( $# == 2 )) || {
+            echo 'Expected one WINE prefix dirname and one Windows executable filename.' 1>&2
+            return 1
+        }
+
+        # Canonicalize this dirname. Why? Because WINE explicitly prohibits
+        # relative dirnames: e.g.,
+        #     $ WINEPREFIX="." command winecfg
+        #     wine: invalid directory . in WINEPREFIX: not an absolute path
+        local prefix_dirname; prefix_dirname="$(+path.canonicalize "${1}")"
+        local executable_filename="${2}"
+
+        # If this WINE prefix directory does *NOT* exist, fail.
+        [[ -d "${prefix_dirname}" ]] || {
+            echo 'WINE prefix directory "'${prefix_dirname}'" not found.' 1>&2
+            return 1
+        }
+        # Else, this WINE prefix directory exists.
+
+        # Run this Windows executable in this WINE prefix.
+        WINEPREFIX="${prefix_dirname}" command wine "${executable_filename}"
     }
 fi
 
@@ -1405,7 +1513,7 @@ fi
     grub-mkconfig -o /boot/grub/grub.cfg
 }
 
-# ....................{ FUNCTIONS ~ linux : kernel        }....................
+# ....................{ FUNCTIONS ~ linux : kernel         }....................
 # Functions conditionally dependent upon the Linux platform.
 
 # If the canonical directory containing Linux kernel sources exists...
