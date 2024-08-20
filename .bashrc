@@ -274,8 +274,10 @@ if [[ -n "${_IS_COLOR}" ]]; then
     # "less") outputting to an interactive shell.
     _COLOR_OPTION=' --color=always'
 
-    # Configure "less" to preserve control characters and hence color codes.
-    alias less='less --RAW-CONTROL-CHARS'
+    # Configure "less" to:
+    # * Preserve control characters and hence color codes.
+    # * "-s", wrap rather than truncate long lines.
+    alias less='less -s --RAW-CONTROL-CHARS'
 
     # Color GCC warnings and errors.
     export GCC_COLORS='error=01;31:warning=01;35:note=01;36:caret=01;32:locus=01:quote=01'
@@ -1050,6 +1052,9 @@ if +command.is curl; then
         }
 
         local url="${1}"
+
+        # Array of shell words comprising the "curl" command to be run,
+        # including command-line options.
         local -a curl_command; curl_command=(
             command curl
             --location
@@ -1109,6 +1114,124 @@ if +command.is nc; then
         #   seconds of connection inactivity from the remote machine.
         command nc -w 60 \
             "${ip_address}" "${port_number}" < "${payload_filename}"
+    }
+fi
+
+# ....................{ FUNCTIONS ~ command : net : rsync  }....................
+# If the "rsync" command is in the current ${PATH}...
+if +command.is rsync; then
+    # void +rsync.sync_safe(str src_pathname, str trg_pathname)
+    #
+    # Synchronize the local or remote source path with the passed pathname to
+    # the local or remote target path with the passed pathname via the "rsync"
+    # protocol "safely" (i.e., by preserving rather than deleting extraneous
+    # target paths that exist *ONLY* in this target but not source directory).
+    #
+    # By default, "rsync" encapsulates remote operations over the SSH protocol.
+    # Remote hosts are supported in both the source *AND* target pathnames via
+    # standard SSH syntax: e.g.,
+    #     # Synchronize the remote ~leycec user directory on the remote machine
+    #     # with this IP address to the corresponding local user directory.
+    #     +rsync.safe leycec@192.168.1.191:/home/leycec /home/leycec
+    function +rsync.safe() {
+        (( $# == 2 )) || {
+            echo 'Expected one source pathname and one target pathname.' 1>&2
+            return 1
+        }
+        local src_pathname="${1}" trg_pathname="${1}"
+
+        # If the source pathname is *NOT* the root directory, strip the trailing
+        # "/" delimiter if any from this pathname. Why? Because the default
+        # "rsync" behaviour interprets a trailing "/" delimiter in the source
+        # pathname in a non-intuitively dangerous manner. See also this relevant
+        # upstream Arch Linux Wiki section:
+        #     https://wiki.archlinux.org/title/rsync#Trailing_slash_caveat
+        [[ "${src_pathname}" != '/' ]] && src_pathname="${src_pathname%/}"
+        print "Synchronizing \"${src_pathname}\" to \"${trg_pathname}\"..."
+
+        # Array of shell words comprising the "rsync" command to be run,
+        # including command-line options.
+        local -a rsync_command; rsync_command=(
+            command rsync
+
+            # Ignore temporary directories.
+            --exclude='/run'
+            --exclude='/tmp'
+            --exclude='/var/tmp'
+            --exclude='.gvfs'
+
+            # Ignore temporary files.
+            --exclude='*.swp'
+
+            # Ignore problematic directories, including:
+            #
+            # * ".PyCharm*", matching all PyCharm-specific dot directories,
+            #   which "rsync" fails to synchronized with I/O timeout errors for
+            #   unknown reasons.
+            # * ".cache", matching the top-level "${HOME}/.cache" dot directory
+            #   guaranteed to contain trivially recreatable temporary paths.
+            # * "__pycache__", matching all CPython-specific bytecode cache
+            #   directories.
+            --exclude='.PyCharm*'
+            --exclude='.cache'
+            --exclude='__pycache__'
+
+            # # Delete all paths found on the target but *NOT* the source.
+            # --delete --delete-during
+
+            # Synchronize device and special files as well as normal files.
+            --devices --specials
+
+            # Ignore spurious I/O errors (e.g., permission failure).
+            --ignore-errors
+
+            # Synchronize symbolic links.
+            --links --keep-dirlinks --safe-links
+
+            # Avoid crossing filesystem boundaries (i.e., synchronize only files
+            # residing on filesystems to which the target URIs themselves are
+            # mounted).
+            # --one-file-system
+
+            # Preserve partially transferred files.
+            --partial
+
+            # Attempt to preserve file permissions and ownership.
+            --perms --group --owner
+            --protect-args
+
+            # Increase the I/O timeout from the default 30 seconds to 4 minutes.
+            --timeout=240
+
+            # Synchronize recursively.
+            --recursive
+            --sparse
+            --times
+
+            # Synchronize human-readably. Dismantled, this is:
+            # * "stats1", displaying transfer statistics with verbosity level 1.
+            # * "progress2", displaying total transfer progress (rather than
+            #   per-file transfer progress as with "progress1").
+            --human-readable
+            --info=stats1,progress2
+            --itemize-changes
+            --progress
+            --stats
+        )
+
+        # Note that, unlike curl, rsync has *NO* retry options. Ergo, we
+        # additionally forcefully rerun rsync until rsync reports success.
+        until "${rsync_command[@]}" "${src_pathname}" "${trg_pathname}"; do
+            echo 'Forcefully resuming prematurely aborted synchronization...' 1>&2
+            sleep 5
+        done
+    }
+
+    #FIXME: Remove after no longer required, please.
+    function +rsync.telynau() {
+        +rsync.safe \
+            leycec@swigen:/media/telynau/pub/{audio,code,demo,game,image,note,text,video} \
+            /home/leycec/pub
     }
 fi
 
@@ -1298,6 +1421,12 @@ if +command.is gs; then
 fi
 
 # ....................{ FUNCTIONS ~ command : arch : zip   }....................
+#FIXME: Add additional commands to enable performance-centric APIs, including:
+#* VKD3D-Proton via:
+#      $ WINEPREFIX=your-prefix setup_vkd3d_proton install
+#* DXVK via:
+#      $ WINEPREFIX=your-prefix setup_dxvk install
+
 # If "winecfg" is in the current ${PATH}...
 if +command.is winecfg; then
     # void +wine.conf_prefix(str prefix_dirname)
@@ -2118,7 +2247,6 @@ fi
 +command.is libreoffice  && alias lo='libreoffice &!'
 +command.is lutris       && alias lu='lutris &!'
 +command.is mcomix       && alias mc='mcomix &!'
-+command.is nicotine     && alias ni='nicotine &!'
 +command.is playonlinux  && alias pol='playonlinux &!'
 +command.is qtcreator    && alias qtc='qtcreator &!'
 +command.is retroarch    && alias ra='retroarch &!'
@@ -2138,6 +2266,22 @@ if +command.is calibre; then
     #     https://askubuntu.com/questions/1053497/how-do-i-get-a-dark-theme-night-mode-in-calibre-ebook-viewer
     export CALIBRE_USE_DARK_PALETTE=1
     export CALIBRE_USE_SYSTEM_THEME=0
+fi
+
+# If Nicotine+ is installed...
+if +command.is nicotine; then
+    # Unset envirnoment variables known to conflict with Nicotine+. If this is
+    # *NOT* done, then Nicotine+ currently spuriously fails to start with
+    # unreadable output resembling:
+    #     [2024-06-21 01:54:05] Loading Python 3.12.3
+    #     [2024-06-21 01:54:05] Loading Nicotine+ 3.3.4
+    #     Unrecognized value "gl-no-fractional". Try GDK_DEBUG=help
+    #     [2024-06-21 01:54:06] Loading GTK 4.12.5
+    #     Failed to register: Timeout was reached
+    #
+    # See also this related upstream Ask Ubuntu answer:
+    #     https://askubuntu.com/a/1454785/415719
+    alias ni='unset XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS; nicotine &!'
 fi
 
 # ....................{ ALIASES ~ gui : args              }....................

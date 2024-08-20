@@ -82,3 +82,5 @@
     enabled = true
 [status]
     showuntrackedfiles = all
+[submodule]
+    recurse = true
