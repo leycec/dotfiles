@@ -329,6 +329,53 @@ fi
 #     https://github.com/gentoo/sci/blob/master/CONTRIBUTING.md
 export ECHANGELOG_USER="Cecil Curry <leycec@gmail.com>"
 
+# ....................{ GLOBALS ~ hardware                 }....................
+# Enable VDPAU-based hardware acceleration on AMD GPUs. See also:
+#     https://wiki.archlinux.org/title/Hardware_video_acceleration#Configuring_VDPAU
+export VDPAU_DRIVER=radeonsi
+
+# ....................{ DEPENDENCIES                       }....................
+# If the current shell is zsh...
+if [[ -n "${IS_ZSH}" ]]; then
+#   echo 'Enabling zsh-specific dependencies...'
+
+    # Absolute filename of the system-wide zsh-specific "powerlevel10k" theme.
+    local _POWERLEVEL10K_FILENAME='/usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme'
+
+    # Absolute filename of system-wide zsh-specific "oh-my-zsh" launch script.
+    local _OHMYZSH_FILENAME='/usr/share/oh-my-zsh/oh-my-zsh.sh'
+
+    # If "powerlevel10k" exists...
+    #
+    # Note that this theme may be customized by either:
+    # * Running the "p10k configure" command.
+    # * Manually editing the "~/.p10k.zsh" file.
+    if [[ -f "${_POWERLEVEL10K_FILENAME}" ]]; then
+#       echo 'Enabling "powerlevel10k"...'
+
+        # Enable "powerlevel10k".
+        source "${_POWERLEVEL10K_FILENAME}"
+
+	# If the user-specific configuration file for "powerlevel10k" exists,
+	# enable this configuration.
+        [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
+    fi
+
+    # If "oh-my-zsh" exists...
+    if [[ -f "${_OHMYZSH_FILENAME}" ]]; then
+        # Array of the names of all "oh-my-zsh" plugins to be enabled.
+        local -a plugins; plugins=(git sudo zsh-256color zsh-autosuggestions zsh-syntax-highlighting)
+
+	# Enable "oh-my-zsh" with these plugins.
+        source "${_OHMYZSH_FILENAME}"
+    fi
+
+    # If the "pokemon-colorscripts" command is in the current "${PATH}", run
+    # this command to display *ADORABLE* ASCII artwork at shell startup.
+    +command.is pokemon-colorscripts &&
+        command pokemon-colorscripts --no-title -r 1,3,6
+fi
+
 # ....................{ FUNCTIONS ~ path                   }....................
 # str +path.canonicalize(str pathname)
 #
@@ -1138,7 +1185,7 @@ if +command.is rsync; then
             echo 'Expected one source pathname and one target pathname.' 1>&2
             return 1
         }
-        local src_pathname="${1}" trg_pathname="${1}"
+        local src_pathname="${1}" trg_pathname="${2}"
 
         # If the source pathname is *NOT* the root directory, strip the trailing
         # "/" delimiter if any from this pathname. Why? Because the default
@@ -1229,9 +1276,24 @@ if +command.is rsync; then
 
     #FIXME: Remove after no longer required, please.
     function +rsync.telynau() {
-        +rsync.safe \
-            leycec@swigen:/media/telynau/pub/{audio,code,demo,game,image,note,text,video} \
-            /home/leycec/pub
+#       for basename in note; do
+        for basename in audio; do
+        	+rsync.safe \
+        	    leycec@192.168.1.191:/home/leycec/pub/"${basename}" \
+        	    /home/leycec/pub
+	done
+
+#       for basename in {audio,code,demo,game,image,note,text,video}; do
+#       	+rsync.safe \
+#       	    leycec@192.168.1.191:/media/telynau/pub/"${basename}" \
+#       	    /home/leycec/pub
+#       done
+#	    leycec@192.168.1.191:/home/leycec/pri \
+#	    leycec@192.168.1.191:/home/leycec/"/pub/torrent/clearnet/[Anime Time] Code Geass Full Series [BD][Dual Audio][1080p][HEVC 10bit x265][AAC][Eng Sub]/Code Geass Season 1" \
+
+#	+rsync.safe \
+#	    leycec@192.168.1.191:/home/leycec/pub/new/'EP*' \
+#	    /home/leycec/new/
     }
 fi
 
@@ -1854,7 +1916,6 @@ alias fgrep="fgrep ${_GREP_OPTIONS}"
 
 # Configure "ls"-like commands with options defined above.
 _LS_OPTIONS="--all --group-directories-first --human-readable${_COLOR_OPTION}"
-alias ls="ls ${_LS_OPTIONS}"
 alias dir="dir ${_LS_OPTIONS}"
 alias vdir="vdir ${_LS_OPTIONS}"
 
@@ -1865,7 +1926,6 @@ alias d='date'
 alias e='echo'
 alias f='fg'
 alias j='jobs'
-alias l='ls'
 alias m='mv'
 alias t='touch'
 
@@ -1881,8 +1941,6 @@ alias cr='cp -R'
 alias gi='git'
 alias in='info'
 alias le='less'
-alias ll='ls -l'
-alias lr='+dir.list_recursive'
 alias md='mkdir'
 alias mo='mount'
 alias rd='rmdir'
@@ -1989,11 +2047,79 @@ for _GREP_COMMAND in rg ag sift ack pt grep; do
     fi
 done
 
+# ....................{ ALIASES ~ cli : list              }....................
+# If an alternative "ls" command (e.g., eza) is available, alias the family of
+# "l*" aliases to the most efficient such command; 
+if +command.is eza; then
+    alias ls='eza -a1   --icons=auto' # short list
+    alias  l='eza -alh  --icons=auto' # long list
+    alias ld='eza -alhD --icons=auto' # long list dirs
+    alias ll='eza -alh  --icons=auto --sort=name --group-directories-first' # long list all
+    alias lr='ll --recurse' # long list all recursive
+# Else, fallback to vanilla "ls" for sanity.
+else
+    alias ls="ls ${_LS_OPTIONS}"
+    alias l='ls'
+    alias ll='ls -l'
+    alias lr='+dir.list_recursive'
+fi
+
 # ....................{ ALIASES ~ cli : linux             }....................
 # Abbreviations conditionally dependent upon Linux-specific external commands.
 
 # Configure Linux-specific commands with sane defaults.
 +command.is lsblk && alias lsblk='lsblk --fs'
+
+# ....................{ ALIASES ~ cli : linux : arch      }....................
+# Abbreviations conditionally dependent upon Arch-specific external commands.
+
+# If the "pacman" command is available, this is Arch Linux. In this case...
+if +command.is pacman; then
+    # In case a command is not found, try to find the package that has it
+    function command_not_found_handler {
+        local purple='\e[1;35m' bright='\e[0;1m' green='\e[1;32m' reset='\e[0m'
+        printf 'zsh: command not found: %s\n' "$1"
+        local entries=( ${(f)"$(/usr/bin/pacman -F --machinereadable -- "/usr/bin/$1")"} )
+        if (( ${#entries[@]} )) ; then
+            printf "${bright}$1${reset} may be found in the following packages:\n"
+            local pkg
+            for entry in "${entries[@]}" ; do
+                local fields=( ${(0)entry} )
+                if [[ "$pkg" != "${fields[2]}" ]] ; then
+                    printf "${purple}%s/${bright}%s ${green}%s${reset}\n" "${fields[1]}" "${fields[2]}" "${fields[3]}"
+                fi
+                printf '    /%s\n' "${fields[4]}"
+                pkg="${fields[2]}"
+            done
+        fi
+        return 127
+    }
+    
+    # Detect the AUR wrapper
+    if pacman -Qi yay &>/dev/null ; then
+       aurhelper="yay"
+    elif pacman -Qi paru &>/dev/null ; then
+       aurhelper="paru"
+    fi
+    
+    function in {
+        local pkg="$1"
+        if pacman -Si "$pkg" &>/dev/null ; then
+            sudo pacman -S "$pkg"
+        else 
+            "$aurhelper" -S "$pkg"
+        fi
+    }
+    
+    # Helpful aliases
+    # alias yar='$aurhelper -Rns' # uninstall package
+    alias un='$aurhelper -Rns' # uninstall package
+    alias up='$aurhelper -Syu' # update system/package/aur
+    alias pl='$aurhelper -Qs' # list installed package
+    alias pa='$aurhelper -Ss' # list availabe package
+    alias pc='$aurhelper -Sc' # remove unused cache
+    alias po='$aurhelper -Qtdq | $aurhelper -Rns -' # remove unused packages, also try > $aurhelper -Qqd | $aurhelper -Rsu --print -
+fi
 
 # ....................{ ALIASES ~ cli : linux : gentoo    }....................
 # Abbreviations conditionally dependent upon Gentoo-specific external commands.
@@ -2247,6 +2373,7 @@ fi
 +command.is libreoffice  && alias lo='libreoffice &!'
 +command.is lutris       && alias lu='lutris &!'
 +command.is mcomix       && alias mc='mcomix &!'
++command.is nicotine     && alias ni='nicotine &!'
 +command.is playonlinux  && alias pol='playonlinux &!'
 +command.is qtcreator    && alias qtc='qtcreator &!'
 +command.is retroarch    && alias ra='retroarch &!'
@@ -2266,22 +2393,6 @@ if +command.is calibre; then
     #     https://askubuntu.com/questions/1053497/how-do-i-get-a-dark-theme-night-mode-in-calibre-ebook-viewer
     export CALIBRE_USE_DARK_PALETTE=1
     export CALIBRE_USE_SYSTEM_THEME=0
-fi
-
-# If Nicotine+ is installed...
-if +command.is nicotine; then
-    # Unset envirnoment variables known to conflict with Nicotine+. If this is
-    # *NOT* done, then Nicotine+ currently spuriously fails to start with
-    # unreadable output resembling:
-    #     [2024-06-21 01:54:05] Loading Python 3.12.3
-    #     [2024-06-21 01:54:05] Loading Nicotine+ 3.3.4
-    #     Unrecognized value "gl-no-fractional". Try GDK_DEBUG=help
-    #     [2024-06-21 01:54:06] Loading GTK 4.12.5
-    #     Failed to register: Timeout was reached
-    #
-    # See also this related upstream Ask Ubuntu answer:
-    #     https://askubuntu.com/a/1454785/415719
-    alias ni='unset XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS; nicotine &!'
 fi
 
 # ....................{ ALIASES ~ gui : args              }....................
@@ -2306,6 +2417,7 @@ fi
 }
 
 # ....................{ COMPLETIONS                        }....................
+# If the current shell is zsh...
 if [[ -n "${IS_ZSH}"  ]]; then
     # Enable all default completions.
     zstyle :compinstall filename "${HOME}/.zshrc"
