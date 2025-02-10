@@ -858,6 +858,28 @@ if +command.is pygmentize; then
     }
 fi
 
+# ....................{ FUNCTIONS ~ command : desktop      }....................
+# If the Hyperland Desktop Environment (Hyde) is locally installed to a mostly
+# sane user-specific directory...
+if [[ -d ~/hypr/hyde/Scripts ]]; then
+    # str +hyde.update()
+    #
+    # Update the Hyperland Desktop Environment (Hyde) to the most recent remote
+    # GitHub-managed "live" version. See also these official instructions:
+    #      https://github.com/prasanthrangan/hyprdots?tab=readme-ov-file#-1
+    function +hyde.update() {
+        (( $# == 0 )) || {
+            echo "Expected no arguments, but received ${#}." 1>&2
+            return 1
+        }
+
+        echo 'Updating Hyde...'
+        ~/hypr/hyde/Scripts
+        command git pull
+        ./install.sh -r
+    }
+fi
+
 # ....................{ FUNCTIONS ~ command : image        }....................
 #FIXME: Create similar ImageMagick-based commands for:
 #* Reduction to grayscale. Curiously, it would seem that there are a countably
@@ -1276,19 +1298,20 @@ if +command.is rsync; then
 
     #FIXME: Remove after no longer required, please.
     function +rsync.telynau() {
+        +rsync.safe leycec@192.168.1.191:/home/leycec/pri /home/leycec/
+
 #       for basename in note; do
-        for basename in audio; do
-        	+rsync.safe \
-        	    leycec@192.168.1.191:/home/leycec/pub/"${basename}" \
-        	    /home/leycec/pub
-	done
+        # for basename in audio; do
+        # 	+rsync.safe \
+        # 	    leycec@192.168.1.191:/home/leycec/pub/"${basename}" \
+        # 	    /home/leycec/pub
+        # done
 
 #       for basename in {audio,code,demo,game,image,note,text,video}; do
 #       	+rsync.safe \
 #       	    leycec@192.168.1.191:/media/telynau/pub/"${basename}" \
 #       	    /home/leycec/pub
 #       done
-#	    leycec@192.168.1.191:/home/leycec/pri \
 #	    leycec@192.168.1.191:/home/leycec/"/pub/torrent/clearnet/[Anime Time] Code Geass Full Series [BD][Dual Audio][1080p][HEVC 10bit x265][AAC][Eng Sub]/Code Geass Season 1" \
 
 #	+rsync.safe \
@@ -1482,7 +1505,7 @@ if +command.is gs; then
     }
 fi
 
-# ....................{ FUNCTIONS ~ command : arch : zip   }....................
+# ....................{ FUNCTIONS ~ command : wine         }....................
 #FIXME: Add additional commands to enable performance-centric APIs, including:
 #* VKD3D-Proton via:
 #      $ WINEPREFIX=your-prefix setup_vkd3d_proton install
