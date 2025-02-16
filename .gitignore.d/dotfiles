@@ -1,18 +1,18 @@
-# ====================[ .gitignore                        ]====================
+# ====================[ .gitignore                         ]====================
 #
-# --------------------( LICENSE                           )--------------------
-# Copyright 2008-2018 by Cecil Curry.
+# --------------------( LICENSE                            )--------------------
+# Copyright 2008-2025 by Cecil Curry.
 # See "LICENSE" for further details.
 #
-# --------------------( SYNOPSIS                          )--------------------
+# --------------------( SYNOPSIS                           )--------------------
 # Whitelist all files and subdirectories of the current directory matching the
 # following git-specific glob expressions.
 #
-# --------------------( CAVEATS                           )--------------------
+# --------------------( CAVEATS                            )--------------------
 # Whitelisting files or subdirectories of top-level subdirectories requires
 # whitelisting those subdirectories first. See the ".gitignore.d/" whitelist.
 #
-# --------------------( SEE ALSO                          )--------------------
+# --------------------( SEE ALSO                           )--------------------
 # For further details, see:
 #
 # * "man gitignore" for high-level commentary.
@@ -20,11 +20,11 @@
 #   that glob() and hence ".gitignore" files support only a proper subset of
 #   bash- and zsh-style glob syntax.
 
-# ....................{ BLACKLIST                         }....................
+# ....................{ BLACKLIST                          }....................
 # Blacklist all paths in the home directory by default.
 *
 
-# ....................{ WHITELIST                         }....................
+# ....................{ WHITELIST                          }....................
 # Whitelist the current file.
 !/.gitignore.d/
 !/.gitignore.d/dotfiles
@@ -43,6 +43,8 @@
 !/.config
 !/.config/fontconfig
 !/.config/fontconfig/fonts.conf
+!/.config/kitty
+!/.config/kitty/userprefs.conf
 !/.gitconfig
 !/.ipython
 !/.ipython/profile_default
