@@ -27,7 +27,7 @@
 # * "zsh", the One True Shell.
 # * "vim", the One True IDE.
 # * "fzf", the Fuzzy File Finder (FZF).
-# * "htop", a highly interactive "top" alternative.
+# * "btop", a highly interactive "top" alternative.
 # * "mpd", the Music Player Daemon (MPD).
 # * "ncdu", the NCurses Disk Usage (NCDU) "du" alternative.
 # * "ncmpcpp", a popular CLI-based MPD client.
@@ -1986,6 +1986,7 @@ alias lram='+dir.list_subdirs_mtime_depth ~/pub/audio/metal 3'
 # CLI-specific one-to-one abbreviations.
 +command.is alsamixer && alias am='alsamixer'
 +command.is fzf && alias fz='fzf'
++command.is btop && alias bt='btop'
 +command.is htop && alias ht='htop'
 +command.is ipython3 && alias ipy='ipython3'
 +command.is links && alias li='links'
@@ -2087,13 +2088,13 @@ else
     alias lr='+dir.list_recursive'
 fi
 
-# ....................{ ALIASES ~ cli : linux             }....................
+# ....................{ ALIASES ~ cli : linux              }....................
 # Abbreviations conditionally dependent upon Linux-specific external commands.
 
 # Configure Linux-specific commands with sane defaults.
 +command.is lsblk && alias lsblk='lsblk --fs'
 
-# ....................{ ALIASES ~ cli : linux : arch      }....................
+# ....................{ ALIASES ~ cli : linux : arch       }....................
 # Abbreviations conditionally dependent upon Arch-specific external commands.
 
 # If the "pacman" command is available, this is Arch Linux. In this case...
@@ -2144,7 +2145,7 @@ if +command.is pacman; then
     alias po='$aurhelper -Qtdq | $aurhelper -Rns -' # remove unused packages, also try > $aurhelper -Qqd | $aurhelper -Rsu --print -
 fi
 
-# ....................{ ALIASES ~ cli : linux : gentoo    }....................
+# ....................{ ALIASES ~ cli : linux : gentoo     }....................
 # Abbreviations conditionally dependent upon Gentoo-specific external commands.
 
 # If the "emerge" command is available, this is Gentoo Linux. In this case...
@@ -2314,7 +2315,7 @@ if +command.is emerge; then
     +command.is eix && [[ -n "${_IS_COLOR}" ]] && alias eix='eix --force-color'
 fi
 
-# ....................{ ALIASES ~ cli : shell             }....................
+# ....................{ ALIASES ~ cli : shell              }....................
 # Abbreviations conditionally dependent upon the current shell.
 
 # Alias:
@@ -2330,7 +2331,25 @@ elif [[ -n "${IS_BASH}" ]]; then
     alias print='echo'
 fi
 
-# ....................{ ALIASES ~ daemon                  }....................
+# ....................{ ALIASES ~ cli : linux : systemd    }....................
+# Abbreviations conditionally dependent upon Systemd-specific external commands.
+
+# If the "systemctl" command is available, Systemd is available. In this case...
+if +command.is systemctl; then
+    # Manage system-wide Systemd units.
+    alias sys='sudo systemctl'
+
+    # Start the passed Systemd unit under the current user *AND* autostart this
+    # unit under this user on *ALL* subsequent logins as this user.
+    alias syue='systemctl enable --now --user'
+
+    # Define an alias tailing the current system logfile. By default, the
+    # "journalctl" command *HEADS* rather than *TAILS* this logfile -- a largely
+    # useless default that only wastes already scarce time.
+    alias jo='journalctl -e'
+fi
+
+# ....................{ ALIASES ~ daemon                   }....................
 # Daemon-specific abbreviations, typically suffixed by "&!" to permit
 # background daemons to be spawned in a detached manner from the current shell.
 
