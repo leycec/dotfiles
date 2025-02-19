@@ -43,6 +43,9 @@
 !/.config
 !/.config/fontconfig
 !/.config/fontconfig/fonts.conf
+!/.config/hypr
+!/.config/hypr/monitors.conf
+!/.config/hypr/userprefs.conf
 !/.config/kitty
 !/.config/kitty/userprefs.conf
 !/.config/mpd
