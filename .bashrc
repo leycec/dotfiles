@@ -300,7 +300,57 @@ if [[ -n "${_IS_COLOR}" ]]; then
     fi
 fi
 
+# ....................{ GLOBALS ~ colour : prompt         }....................
+# If this shell supports color, define a colorful shell prompt.
+if [[ -n "${_IS_COLOR}" ]]; then
+    if [[ -n "${IS_ZSH}" ]]; then
+        # Dismantled, this is:
+        #
+        # * "%B" and "%b", enabling and disabling boldface respectively.
+        # * "%F{color}" and "%f", enabling and disabling the foreground color
+        #   named "color" respectively.
+        # * "%(!.root.nonroot)", expanding to the substring "root" if the
+        #   current user is the superuser or the substring "nonroot" otherwise.
+        # * "%n", expanding to the current username.
+        # * "%~", expanding to the current directory.
+        #
+        # * "%{" and "%}", zsh-specific prompt escapes instructing zsh to
+        #   ignore all embedded strings with respect to deciding prompt length.
+        #
+        # See also:
+        #
+        # * The "SIMPLE PROMPT ESCAPES" section of "man zshmisc".
+        PROMPT='%B%(!.%F{red}.%F{green})[%bzsh%B]%f %F{cyan}%~%f %F{blue}\$%f%b '
+        # PROMPT='%B%(!.%F{red}%n%f .)%F{cyan}%~%f %F{blue}\$%f%b '
+    elif [[ -n "${IS_BASH}" ]]; then
+        # If this is the superuser, define a superuser-specific prompt.
+        if [[ ${EUID} == 0 ]]; then
+            PS1='\[\033[01;31m\][\[\033[00;31m\]bash\[\033[01;31m\]]\[\033[00m\] \[\033[01;33m\]\w \[\033[01;35m\]\$\[\033[00m\] '
+        # Else, define a non-superuser-specific prompt.
+        else
+            PS1='\[\033[01;32m\][\[\033[00;32m\]bash\[\033[01;32m\]]\[\033[00m\] \[\033[01;36m\]\w \[\033[01;34m\]\$\[\033[00m\] '
+        fi
+    fi
+else
+    if [[ -n "${IS_ZSH}" ]]; then
+        PROMPT='%n %~$ '
+    elif [[ -n "${IS_BASH}" ]]; then
+        PS1='\u \w\$ '
+    fi
+fi
+
 # ....................{ GLOBALS ~ command                  }....................
+# Gentoo developer-specific git-formatted username effectively required by all
+# Gentoo repositories when submitting pull requests (PRs). See also:
+#     https://github.com/gentoo/sci/blob/master/CONTRIBUTING.md
+export ECHANGELOG_USER="Cecil Curry <leycec@gmail.com>"
+
+#FIXME: Excise us up, please. *sigh*
+# # Enable VDPAU-based hardware acceleration on AMD GPUs. See also:
+# #     https://wiki.archlinux.org/title/Hardware_video_acceleration#Configuring_VDPAU
+# export VDPAU_DRIVER=radeonsi
+
+# ....................{ GLOBALS ~ command : ide            }....................
 # If the "vim" command is in the current ${PATH}...
 if +command.is vim; then
     # Prefer "vim" as the standard command-line editor.
@@ -317,22 +367,43 @@ elif +command.is nano; then
     export EDITOR=nano
 fi
 
+# ....................{ GLOBALS ~ lang : python            }....................
+# Optimize CPython compilation for the local system. This is especially useful
+# when installing older CPython versions under Arch Linux, where performance
+# increases of ~30% are not uncommon. See also:
+#     https://github.com/pyenv/pyenv/blob/master/plugins/python-build/README.md#building-for-maximum-performance
+export PYTHON_CFLAGS='-march=native -mtune=native'
+export PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto'
+
+# ....................{ GLOBALS ~ lang : perl              }....................
 # If the Gentoo-specific "g-cpan" command is in the current ${PATH} *AND* a
 # third-party Gentoo overlay exists, notify this command of this overlay.
 if +command.is g-cpan && [[ -d ~/bash/raiagent ]]; then
     export GCPAN_OVERLAY=~/bash/raiagent
 fi
 
-# ....................{ GLOBALS ~ command                  }....................
-# Gentoo developer-specific git-formatted username effectively required by all
-# Gentoo repositories when submitting pull requests (PRs). See also:
-#     https://github.com/gentoo/sci/blob/master/CONTRIBUTING.md
-export ECHANGELOG_USER="Cecil Curry <leycec@gmail.com>"
+# ....................{ GLOBALS ~ linux                    }....................
+# If the ${XDG_RUNTIME_DIR} variable mandated by the XDG Base Directory
+# Specification and hence assumed to exist by applications remains undefined...
+if [[ -z "${XDG_RUNTIME_DIR}" ]]; then
+    # Define this variable to a user-specific temporary directory.
+    #
+    # If the systemd-specific "/run/user" or "/var/run/user" directories
+    # exist, defer to the first of these such directories; else, fallback to an
+    # init-agnostic user-specific temporary directory guaranteed to be writable
+    # under most sane permissions schemes.
+    if   [[ -d /run/user/     ]]; then XDG_RUNTIME_DIR="/run/user/$UID"
+    elif [[ -d /var/run/user/ ]]; then XDG_RUNTIME_DIR="/var/run/user/$UID"
+    else                               XDG_RUNTIME_DIR="/tmp/${UID}-runtime-dir"
+    fi
 
-# ....................{ GLOBALS ~ hardware                 }....................
-# Enable VDPAU-based hardware acceleration on AMD GPUs. See also:
-#     https://wiki.archlinux.org/title/Hardware_video_acceleration#Configuring_VDPAU
-export VDPAU_DRIVER=radeonsi
+    # If this directory does *NOT* exist, create this directory with permissions
+    # isolating access to the current user for safety.
+    if [[ ! -d "${XDG_RUNTIME_DIR}" ]]; then
+        mkdir "${XDG_RUNTIME_DIR}"
+        chmod 0700 "${XDG_RUNTIME_DIR}"
+    fi
+fi
 
 # ....................{ DEPENDENCIES                       }....................
 # If the current shell is zsh...
@@ -356,8 +427,8 @@ if [[ -n "${IS_ZSH}" ]]; then
         # Enable "powerlevel10k".
         source "${_POWERLEVEL10K_FILENAME}"
 
-	# If the user-specific configuration file for "powerlevel10k" exists,
-	# enable this configuration.
+    # If the user-specific configuration file for "powerlevel10k" exists,
+    # enable this configuration.
         [[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
     fi
 
@@ -366,7 +437,7 @@ if [[ -n "${IS_ZSH}" ]]; then
         # Array of the names of all "oh-my-zsh" plugins to be enabled.
         local -a plugins; plugins=(git sudo zsh-256color zsh-autosuggestions zsh-syntax-highlighting)
 
-	# Enable "oh-my-zsh" with these plugins.
+    # Enable "oh-my-zsh" with these plugins.
         source "${_OHMYZSH_FILENAME}"
     fi
 
@@ -1321,7 +1392,7 @@ if +command.is rsync; then
 fi
 
 # ....................{ FUNCTIONS ~ command : python       }....................
-# If Python is in the current ${PATH}...
+# If Python 3 is in the current ${PATH}...
 if +command.is python3; then
     # str +python.profile_snippet(str setup_code, str profile_code)
     #
@@ -1350,6 +1421,34 @@ if +command.is python3; then
         echo 'Profiling code snippets...'
         command python3 -m timeit -s "${code_setup}" "${code_timed}"
     }
+fi
+
+# If "pyenv" is in the current ${PATH}...
+if +command.is pyenv; then
+    # Initialize "pyenv" for use under the current shell. See also:
+    #     https://github.com/pyenv/pyenv#b-set-up-your-shell-environment-for-pyenv
+    export PYENV_ROOT="${HOME}/py/pyenv"
+    export PATH="${PYENV_ROOT}/bin:${PATH}"
+    eval "$(pyenv init - zsh)"
+
+    # Space-delimited list of *ALL* actively maintained CPython versions.
+    local _PYTHON_VERSIONS='3.9 3.10 3.11 3.12 3.13'
+
+    # Alias common "pyenv" subcommands.
+    alias pye='pyenv'
+    alias pyei='pyenv install'
+
+    # Define an alias (re)installing *ALL* actively maintained CPython versions.
+    alias pyeia="pyenv install ${_PYTHON_VERSIONS}"
+
+    # Define one shell alias "python{major}.{minor}" for each previously
+    # installed Python version.
+    #
+    # Note that the most recently released CPython version is typically
+    # available under the current Linux distribution as a similar command.
+    # Nonetheless, we intentionally include that version as well in this list to
+    # avoid polluting the system CPython interpreter with conflicting packages.
+    pyenv global ${_PYTHON_VERSIONS}
 fi
 
 # ....................{ FUNCTIONS ~ command : python : ana }....................
@@ -1691,7 +1790,7 @@ if +command.is xrandr; then
     }
 fi
 
-# ....................{ FUNCTIONS ~ command : gui         }....................
+# ....................{ FUNCTIONS ~ command : gui          }....................
 # For each GUI command invoked with CLI arguments in the current ${PATH},
 # define an alias-like function passing those arguments to that command.
 +command.is evince && function ev() {
@@ -1701,7 +1800,7 @@ fi
     command okular "${@}" &!
 }
 
-# ....................{ FUNCTIONS ~ linux : grub          }....................
+# ....................{ FUNCTIONS ~ linux : grub           }....................
 # Functions conditionally dependent upon the GRUB2 boot loader.
 
 # void +grub.install()
@@ -1855,68 +1954,6 @@ elif [[ -n "${IS_BASH}" ]]; then
 
     # Emulate Vi[m] modality on reading keyboard input.
     set -o vi
-fi
-
-# ....................{ VARIABLES ~ prompt                }....................
-# If this shell supports color, define a colorful shell prompt.
-if [[ -n "${_IS_COLOR}" ]]; then
-    if [[ -n "${IS_ZSH}" ]]; then
-        # Dismantled, this is:
-        #
-        # * "%B" and "%b", enabling and disabling boldface respectively.
-        # * "%F{color}" and "%f", enabling and disabling the foreground color
-        #   named "color" respectively.
-        # * "%(!.root.nonroot)", expanding to the substring "root" if the
-        #   current user is the superuser or the substring "nonroot" otherwise.
-        # * "%n", expanding to the current username.
-        # * "%~", expanding to the current directory.
-        #
-        # * "%{" and "%}", zsh-specific prompt escapes instructing zsh to
-        #   ignore all embedded strings with respect to deciding prompt length.
-        #
-        # See also:
-        #
-        # * The "SIMPLE PROMPT ESCAPES" section of "man zshmisc".
-        PROMPT='%B%(!.%F{red}.%F{green})[%bzsh%B]%f %F{cyan}%~%f %F{blue}\$%f%b '
-        # PROMPT='%B%(!.%F{red}%n%f .)%F{cyan}%~%f %F{blue}\$%f%b '
-    elif [[ -n "${IS_BASH}" ]]; then
-        # If this is the superuser, define a superuser-specific prompt.
-        if [[ ${EUID} == 0 ]]; then
-            PS1='\[\033[01;31m\][\[\033[00;31m\]bash\[\033[01;31m\]]\[\033[00m\] \[\033[01;33m\]\w \[\033[01;35m\]\$\[\033[00m\] '
-        # Else, define a non-superuser-specific prompt.
-        else
-            PS1='\[\033[01;32m\][\[\033[00;32m\]bash\[\033[01;32m\]]\[\033[00m\] \[\033[01;36m\]\w \[\033[01;34m\]\$\[\033[00m\] '
-        fi
-    fi
-else
-    if [[ -n "${IS_ZSH}" ]]; then
-        PROMPT='%n %~$ '
-    elif [[ -n "${IS_BASH}" ]]; then
-        PS1='\u \w\$ '
-    fi
-fi
-
-# ....................{ VARIABLES ~ linux                 }....................
-# If the ${XDG_RUNTIME_DIR} variable mandated by the XDG Base Directory
-# Specification and hence assumed to exist by applications remains undefined...
-if [[ -z "${XDG_RUNTIME_DIR}" ]]; then
-    # Define this variable to a user-specific temporary directory.
-    #
-    # If the systemd-specific "/run/user" or "/var/run/user" directories
-    # exist, defer to the first of these such directories; else, fallback to an
-    # init-agnostic user-specific temporary directory guaranteed to be writable
-    # under most sane permissions schemes.
-    if   [[ -d /run/user/     ]]; then XDG_RUNTIME_DIR="/run/user/$UID"
-    elif [[ -d /var/run/user/ ]]; then XDG_RUNTIME_DIR="/var/run/user/$UID"
-    else                               XDG_RUNTIME_DIR="/tmp/${UID}-runtime-dir"
-    fi
-
-    # If this directory does *NOT* exist, create this directory with
-    # permissions isolating access to the current user for safety.
-    if [[ ! -d "${XDG_RUNTIME_DIR}" ]]; then
-        mkdir "${XDG_RUNTIME_DIR}"
-        chmod 0700 "${XDG_RUNTIME_DIR}"
-    fi
 fi
 
 # ....................{ ALIASES ~ coreutils               }....................
@@ -2073,7 +2110,7 @@ done
 
 # ....................{ ALIASES ~ cli : list              }....................
 # If an alternative "ls" command (e.g., eza) is available, alias the family of
-# "l*" aliases to the most efficient such command; 
+# "l*" aliases to the most efficient such command.
 if +command.is eza; then
     alias ls='eza -a1   --icons=auto' # short list
     alias  l='eza -alh  --icons=auto' # long list
@@ -2118,23 +2155,23 @@ if +command.is pacman; then
         fi
         return 127
     }
-    
+
     # Detect the AUR wrapper
     if pacman -Qi yay &>/dev/null ; then
        aurhelper="yay"
     elif pacman -Qi paru &>/dev/null ; then
        aurhelper="paru"
     fi
-    
+
     function in {
         local pkg="$1"
         if pacman -Si "$pkg" &>/dev/null ; then
             sudo pacman -S "$pkg"
-        else 
+        else
             "$aurhelper" -S "$pkg"
         fi
     }
-    
+
     # Helpful aliases
     # alias yar='$aurhelper -Rns' # uninstall package
     alias un='$aurhelper -Rns' # uninstall package
