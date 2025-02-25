@@ -1,0 +1,84 @@
+#!/usr/bin/env zsh
+
+# ====================[ kittydrop                          ]====================
+#
+# --------------------( LICENSE                            )--------------------
+# Copyright 2025 by Cecil Curry.
+# See "LICENSE" for further details.
+#
+# --------------------( SYNOPSIS                           )--------------------
+# Kuake-like Kitty terminal dropdown isolated to the current Hyprland workspace.
+# Whereas traditional Quake consoles are usually implemented as a single
+# terminal globally accessible under all workspaces, this script instead
+# associates each workspace with its own unique Kitty terminal.
+#
+# --------------------( USAGE                              )--------------------
+# This shell script accepts *NO* command-line arguments. When run, this script:
+# 1. Detects whether a Kitty dropdown is running under the current workspace.
+# 2. If *NO* Kitty dropdown is running under the current workspace, launches
+#    Kitty as a dropdown under the current workspace. Halt!
+# 3. Else, a Kitty dropdown is already running under the current workspace. In
+#    this case...
+# 4. Detects whether this Kitty dropdown is the currently focused window.
+# 5. If this Kitty dropdown is the currently focused window, focuses away from
+#    this dropdown to the next window if any under the current workspace. Halt!
+# 6. Else, this Kitty dropdown is *NOT* the currently focused window. In this
+#    case, focuses this dropdown.
+#
+# --------------------( DEPENDENCIES                       )--------------------
+# This shell script requires:
+# * Hyprland.
+# * Kitty.
+# * zsh.
+
+# ....................{ PREAMBLE                           }....................
+# Enable shell strictness for sanity. See also:
+#     http://redsymbol.net/articles/unofficial-bash-strict-mode
+set -euo pipefail
+IFS=$'\n\t'
+
+# ....................{ GLOBALS                            }....................
+# 1-based integer identifying the workspace to be switched to.
+WORKSPACE_ID="$(command hyprctl monitors | command grep 'active workspace' | command grep --only-matching --perl-regexp '\d+' | command sed --quiet 1p)"
+
+# Workspace-specific Wayland class associated with the "kitty" process to be
+# opened under this workspace.
+KITTY_CLASS="kitty_${WORKSPACE_ID}"
+
+# ID of this "kitty" process if this process is running *OR* the empty string
+# otherwise (i.e., if no such "kitty" process is running under this workspace).
+KITTY_PID="$(command hyprctl -j clients | jq -r ".[] | select(.class == \"${KITTY_CLASS}\") | .pid")"
+
+# ID of the currently focused process.
+FOCUS_PID="$(command hyprctl activewindow | command awk '/pid:/ {print $2}')"
+
+# Debug us up, please.
+# print "WORKSPACE_ID: ${WORKSPACE_ID}"
+# print "KITTY_CLASS: ${KITTY_CLASS}"
+# print "KITTY_PID: ${KITTY_PID}"
+# print "FOCUS_PID: ${FOCUS_PID}"
+
+# If *NO* such "kitty" process is running under this workspace...
+if [[ -z "${KITTY_PID}" ]]; then
+    # Run a new "kitty" process with this class under this workspace.
+    #
+    # Note that:
+    # * "&" runs this process in the background (i.e., diassociated from this
+    #   currently running shell script).
+    # * "!" disowns this process from this script, ensuring that the termination
+    #   of this script does *NOT* also terminate this process.
+    command kitty --class "${KITTY_CLASS}" --start-as fullscreen &!
+# Else, an "kitty" process is already running under this workspace.
+#
+# If this "kitty" process is the currently focused window, either:
+# * If one or more other windows currently exist in this workspace, focus the
+#   next such window.
+# * Else, silently reduce to a noop.
+elif [[ "${KITTY_PID}" == "${FOCUS_PID}" ]]; then
+    command hyprctl dispatch cyclenext
+# Else, this "kitty" process is *NOT* the currently focused window. In this
+# case, focus this process.
+else
+    # command hyprctl dispatch focuswindow "${WORKSPACE_ID},pid:${KITTY_PID}"
+    command hyprctl dispatch focuswindow "pid:${KITTY_PID}"
+fi

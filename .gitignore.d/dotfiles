@@ -73,13 +73,17 @@
 !/.zprofile
 !/.zshrc
 
-# Whitelist all paths transitively required (e.g., imported, sourced) by
-# dotfile-specific paths whitelisted above. Again, this whitelist may be (and
-# often is) overridden by lower-level ".gitignore" files nested in these paths.
+# # Whitelist Bash shell scripts.
 !/bash/
-!/bash/ds4_lightbar
-!/bash/xorg_init
-!/bash/xorg_start
+!/bash/bin/
+!/bash/bin/ds4_lightbar
+!/bash/bin/xorg_init
+!/bash/bin/xorg_start
+
+# # Whitelist zsh shell scripts.
+!/zsh/
+!/zsh/bin/
+!/zsh/bin/kittydrop
 
 # To avoid synchronization issues with the front-facing "github" branch,
 # whitelist all paths specific to this branch.

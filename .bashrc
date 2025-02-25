@@ -170,14 +170,12 @@ function +path.append() {
 # Paths possibly containing commands include:
 #
 # * "/usr/local/bin", containing custom system-wide commands.
-# * "${HOME}/bash", containing Bash-specific scripts.
-# * "${HOME}/zsh", containing zsh-specific scripts.
 # * "${HOME}/py/conda/bin", containing Anaconda-specific commands. Note that
 #   appending (rather than prepending) this directory ensures system-wide
 #   commands (e.g., "python3") take precedence over Miniconda3-specific
 #   commands of the same basename.
 # echo "PATH=${PATH} (before)"
-+path.append /usr/local/bin ~/bin ~/bash ~/zsh  # ~/py/conda/bin
++path.append /usr/local/bin ~/bin  # ~/py/conda/bin
 # echo "PATH=${PATH} (after)"
 
 # ....................{ GLOBALS ~ shell : path ~ perl      }....................
@@ -1431,15 +1429,29 @@ if +command.is pyenv; then
     export PATH="${PYENV_ROOT}/bin:${PATH}"
     eval "$(pyenv init - zsh)"
 
-    # Space-delimited list of *ALL* actively maintained CPython versions.
-    local _PYTHON_VERSIONS='3.9 3.10 3.11 3.12 3.13'
+    # List of *ALL* actively maintained CPython versions, intentionally omitting
+    # ignorable patch versions.
+    #
+    # Note that these versions:
+    # * *MUST* be listed in descending order (i.e., from most to least recently
+    #   released). Doing so ensures that the "python" and "python3" commands
+    #   correspond to the most recently released Python version, as expected.
+    # * *CANNOT* be defined as a space-delimited string. Doing so causes this
+    #   string to be interpreted as a single literal: e.g.,
+    #       _PYTHON_VERSIONS='3.9 3.10 3.11 3.12 3.13'  # <-- bad, which is sad
+    declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.13 3.12 3.11 3.10 3.9)
 
     # Alias common "pyenv" subcommands.
     alias pye='pyenv'
     alias pyei='pyenv install'
 
+    #FIXME: This should probably just be a human-readable function named
+    #+python.install_pythons() instead. *sigh*
+    #FIXME: Also, we probably want a new +python.install_beartype() function as
+    #well that editably installs beartype under all active Pythons.
+
     # Define an alias (re)installing *ALL* actively maintained CPython versions.
-    alias pyeia="pyenv install ${_PYTHON_VERSIONS}"
+    alias pyeia="pyenv install ${_PYTHON_VERSIONS[@]}"
 
     # Define one shell alias "python{major}.{minor}" for each previously
     # installed Python version.
@@ -1448,7 +1460,7 @@ if +command.is pyenv; then
     # available under the current Linux distribution as a similar command.
     # Nonetheless, we intentionally include that version as well in this list to
     # avoid polluting the system CPython interpreter with conflicting packages.
-    pyenv global ${_PYTHON_VERSIONS}
+    pyenv global ${_PYTHON_VERSIONS[@]}
 fi
 
 # ....................{ FUNCTIONS ~ command : python : ana }....................
