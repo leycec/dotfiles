@@ -80,6 +80,11 @@
 !/bash/bin/xorg_init
 !/bash/bin/xorg_start
 
+# # Whitelist Perl scripts.
+!/perl/
+!/perl/bin/
+!/perl/bin/mvre
+
 # # Whitelist zsh shell scripts.
 !/zsh/
 !/zsh/bin/

@@ -1,0 +1,891 @@
+#!/usr/bin/env perl
+# --------------------( LICENSE                            )--------------------
+# Copyright (c) 2007-2025 Cecil Curry
+# See "LICENSE" for further details.
+
+# ....................{ PRAGMAS                            }....................
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# WARNING: This version requirement *MUST* be synchronized between:
+# * The following "use" statement.
+# * The leading "requires" statement in the top-level "cpanfile" file.
+# * The "Oldest stable release of the Perl interpreter supported by this
+#   project." in the "perl:" list of the top-level ".travis.yml" file.
+# * All downstream third-party packages, including:
+#   * Gentoo Linux ebuilds packaging this script.
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#
+# Enforce the minimum version of Perl required by this script. Since Perl
+# currently lacks any automated means of deciding this, this version *MUST* be
+# manually decided by taking the maximum of the following:
+#
+# * The "Minimum version of perl" output by the third-party "perlver" script.
+#   Currently, this is Perl 5.8.1.
+# * The maximum of the first Perl version required by all core Perl modules
+#   required below. See the "DEPENDENCIES" section for further details.
+#   Currently, this is Perl 5.6.0.
+#
+# For safety, this *MUST* be the first statement of this script.
+use v5.8.1;
+
+# Enforce strictness for sanity. These should be the default, but... *shrug*
+#
+# For safety, these *MUST* be the second and third statements of this script.
+use strict;
+use warnings;
+
+# ....................{ TODO                               }....................
+#FIXME: Rename this GitHub repository to "mauverex" after receiving a PAUSE
+#account. Yes, this is the ideal name. It is unique and memetastic; let's a-go!
+#FIXME: Create a mauve-colored dynosaur icon as the project favicon.
+
+#FIXME: Minimally document "lib/App/mvpcre.pm" with a sane POD placeholder,
+#ideally referencing this canonical documentation.
+
+#FIXME: Emit explicit warnings when ownership or permission issues prevent a
+#filename or file content operation. This script currently silently ignores
+#such issues, which is... less than ideal.
+
+#FIXME: Add the following new options required for testing:
+#
+#* "-i,--interactive", unconditionally prompting for confirmation after the
+#   preview. Option documentation should read as follows:
+#      -i,--interactive       print a dry run and prompt before replacing files
+#                             [default if run under interactive terminal]
+#* "--no-interactive", unconditionally proceeding with operations after the
+#  preview.
+#
+#If passed neither, implicitly detect whether stdout is attached to an
+#interactive terminal and enabling "-i" if so or "--no-interactive" otherwise.
+#FIXME: Display a warning when prompting for confirmation if any filenames to
+#be replaced already exist in the target directory.
+#FIXME: Develop a "Test::More"-based test suite after implementing the above.
+#*DO THIS BEFORE DOING ANYTHING ELSE.* We absolutely must know when this script
+#has been broken for our own personal sanity.
+
+#FIXME: Remove the "--no-file-contents" and "--no-file-names" options, which
+#frankly seem silly and obfuscatory. No such options should be needed.
+
+#FIXME: Develop a "Dist::Milla"-based installation script.
+
+#FIXME: Display warnings when passed one or more binary files.
+
+#FIXME: Fail with a fatal error when passed one or more source directories and
+#*NOT* passed the "--recursive" option.
+#FIXME: Improve documentation for the "--recursive" option.
+
+#FIXME: Replace all existing usage of mostly deprecated subroutine prototypes
+#with experimental (albeit encouraged) subroutine signatures. See also this
+#well-written blog article on the subject:
+#    https://www.effectiveperlprogramming.com/2015/04/use-v5-20-subroutine-signatures
+#Note that:
+#* This requires Perl 5.20 – but that's absolutely O.K., as Perl 5.20 was
+#  released over five years ago. Yeah.
+#* Alternative third-party modules exist (e.g., "signatures"). They behave
+#  functionally similar but typically impose more stringent liminations (e.g.,
+#  requiring argument lists to be confined to a single line). But there's
+#  little point in attempting to use any of those, as Perl >= 5.20 already
+#  ships with builtin support. In 2020, it's highly unlikely that any users
+#  will be running Perl < 5.20.
+#FIXME: Actually, let's not do this. We'd genuinely prefer to support Perl all
+#the way back to Perl 5.8. Requiring Perl 5.20 simply for subroutine signatures
+#strikes us as insensible. Instead, examine our existing usage of prototypes to
+#decide whether or not we're actually doing so correctly. If not, consider
+#removing them entirely; if so, consider squelching "perlcritic" warnings.
+
+#FIXME: Replace all existing usage of builtins exported by the "Carp" module
+#(e.g., carp, croak) with the default builtins die() and warn(). Why? Because
+#the nomenclature for the "Carp" module is blatantly non-human-readable and
+#unhelpfully obfuscatory. In particular, we just want die() to behave sanely
+#like its standard counterpart throw() in most languages. That is, we want
+#die() to emit tracebacks. Can we achieve this? Trivially! How? By
+#conditionally importing one of the following functionally equivalent
+#third-party modules if avairable (in order of decreasing developer activity,
+#feature set, usability, and configurability):
+#
+#* Devel::Confess, unabashadly the best. Note that if attached to a colorfoul
+#  terminal, that the "color" option should be passed to this module: e.g.,
+#    use Devel::Confess 'color';
+#* Carp::Always, unabashadly the second best. Note that if attached to a
+#  colorfoul terminal, the separate Carp::Always::Color::Terminal module should
+#  be imported instead. *sigh*
+#* Devel::SimpleTrace. Old, but a reasonable fallback.
+#* Carp::Source::Always. Even older and the last possible fallback.
+#
+#See also the following article on why Carp is now considered harmful:
+#    http://blogs.perl.org/users/steven_haryanto/2010/04/to-die-or-to-croak-that-is-the-question.html
+
+#FIXME: When passed both the "-i" *AND* "--file-contents" options, display a
+#non-interactive preview of all lines to be replaced in something resembling a
+#composite of human-readable "grep" and "diff" output. For example, a
+#replacement on line 258 of "muh_dir/muh_file" might resemble:
+#
+#    muh_dir/muh_file:
+#    258:-muh original line
+#        +muh mungedup line
+#
+#Naturally, care should be taken to truncate preview output to the line width
+#of the current terminal. When doing so, truncate everything *OTHER* than the
+#matched portion of the line (if feasible, of course). So it goes.
+
+#FIXME: Conditionally use an optional POD module colourizing "--help" output if
+#that module is currently usable on the local system. To do so, we'll probably
+#need to:
+#
+#* Stop passing "auto_help" to Getopt::Long::Configure().
+#* Manually handle the "--help" option by calling the pod2usage() function with
+#  at least the following options:
+#  * "-utf8", which should be passed unconditionally as *ALL* POD formatters
+#    should uspport UTF-8 in 2020.
+#  * "-formatter 'Pod::Text::Color'", which should be passed *ONLY* if the
+#    Pod::Text::Color module is locally available. This appears to be trivial,
+#    based on commentary at https://www.perlmonks.org/?node_id=27505:
+#    eval { require Pod::Text::Color };
+#    if ($@) {
+#      # Then "Pod::Text::Color" is available; do something!
+#    } else {
+#      # Then "Pod::Text::Color" is unavailable; do something!
+#    }
+#  * "-formatter 'Pod::Text::Termcap'", which should be passed *ONLY* if the
+#    Pod::Text::Termcap module is locally available but Pod::Text::Color is
+#    *NOT*. The latter appears to be preferable to the former.
+#FIXME: Conditionally colourize output when attached to a colorful terminal.
+#FIXME: Define "--color" and "--no-color" options enabling users to externally
+#configure colourization support. Documentation is as follows:
+#    --color                print colorful output via ANSI escape sequences
+#                           [default if run under colorful terminal]
+#    --no-color             do not print colorful output via ANSI escape sequences
+#                           [default if run under monochrome or no terminal]
+#FIXME: When colorful, replace current printing of "." and "!" characters
+#during path visitation with a proper ANSI-based progress bar. Presumably,
+#third-party modules facilitating this already exist. Use 'em!
+
+#FIXME: UTF8. In theory, enabling the folluwing under "PRAGMAS" might suffice:
+#    use utf8;
+
+#FIXME: I18N. How does that even work in Perl? Yes! Sensibly, the third-party
+#"i18n" module supports an exceedingly trivial API supporting all standard use
+#cases. See also: https://metacpan.org/pod/i18n
+
+#FIXME: For readability, privatize function names (e.g., from
+#substitute_filenames() to _substitute_filenames()).
+
+#FIXME: For maintainability, all existing implicit imports of global
+#subroutines (e.g., croak() from the "Carp" module) should be refactored into
+#explicit imports: e.g.,
+#    use Carp qw(croak)
+
+# ....................{ DEPENDENCIES                       }....................
+# Core Perl modules required by this script. For portability, this script
+# requires *NO* third-party non-core Perl modules. *BEFORE* requiring any new
+# core Perl module, utilize the external "corelist" command installed with most
+# Perl installations to:
+#
+# * Confirm the prospective module is actually core like so:
+#       $ corelist Module::Noncore;
+#       Module::Noncore was not in CORE (or so I think)
+# * Confirm the first Perl version required by this module like so. Note that
+#   "corelist" prints versions as non-human-readable floats rather than
+#   human-readable version specifiers. To convert between the two, simply add
+#   an implicit "." delimiter after the third decimal place and truncate
+#   leading zeroes (e.g., from "5.024001" to "5.24.1"):
+#       $ corelist 'Module::Core';
+#       Module::Core was first released with perl 5.005
+#   * Add a comment associating that module with that requirement.
+#   * If this requirement exceeds the minimum Perl version required above, bump
+#     the latter.
+
+use Carp qw(croak);              # ...first bundled with Perl 5.0.0.
+use File::Basename;              # ...first bundled with Perl 5.0.0.
+use File::Copy;                  # ...first bundled with Perl 5.2.0.
+use File::Find;                  # ...first bundled with Perl 5.0.0.
+# First bundled with Perl 5.5.4.
+use File::Spec::Functions qw(curdir abs2rel rel2abs);
+use Getopt::Long;                # ...first bundled with Perl 5.0.0.
+use Pod::Usage qw(pod2usage);    # ...first bundled with Perl 5.6.0.
+
+#FIXME: "Term::ReadLine::Gnu" is vastly superior, albeit unavailable under
+#Windows. There likely exist other superior alternatives as well. Generalize to
+#conditionally support these alternatives, falling back to "Term::ReadLine".
+use Term::ReadLine;              # ...first bundled with Perl 5.2.0.
+
+# ....................{ EXPORTS                            }....................
+# Global variables exported to external callers.
+
+# Current version of this script, exported to enable inspection by Minilla on
+# producing a new release.
+our $VERSION = '1.0.0';
+
+# ....................{ CONSTANTS                          }....................
+use constant {
+    true => '1',
+    false=> '',
+
+    success=> 0,
+    failure=> 1,
+};
+
+# ....................{ VARIABLES                          }....................
+#FIXME: This doesn't seem particularly robust. StackOverflow, help us now!
+#FIXME: Capitalize.
+my $script_name = basename $0;
+
+#FIXME: Rename to "$CURRENT_DIRNAME".
+my $current_path = rel2abs(curdir()) . '/';
+
+#FIXME: Rename to "$VCS_DIR_BASENAME_REGEX".
+# Compiled regular expression matching version control system directory
+# basenames for all popular modern-day version control systems. This script
+# ignores directories whose basename matches this regular expression.
+my $vcs_directory_basename_regex = qr~(/|^)\.(bzr|cvs|git|hg|svn)(/|$)~;
+
+# ....................{ HELP                               }....................
+#FIXME: Augment with a subroutine signature.
+# Display the passed string if any as a non-fatal warning, display an
+# additional non-fatal warning citing the "--help" option, and immediately halt
+# the current process with the standard failure exit code.
+#
+# This subroutine is strongly inspired by the following StackOverflow answer:
+#     https://stackoverflow.com/a/45336618/2809027
+sub _print_usage_error {
+    my ($error_message) = @_;
+
+    # If passed an error message, display that as a non-fatal warning.
+    if ($error_message) {
+        chomp($error_message);
+        warn("$script_name: $error_message\n");
+    }
+
+    # Display an additional non-fatal warning citing the "--help" option.
+    warn("$script_name: See \"$script_name --help\" for further details.\n");
+
+    # Halt the current process with the standard failure exit code.
+    exit(failure);
+}
+
+# Display a synopsis of the POD documentation embedded in this script.
+sub _print_usage_help {
+    pod2usage({-exitval=> success, -verbose=> 2});
+}
+
+# ....................{ OPTIONS                            }....................
+my %options;
+
+# Configure option parsing. Dismantled, this is:
+#
+# * "bundling", enabling first-level bundling (e.g., auto-expanding a passed
+#   "-vax" list of bundled options to "-v -a -x").
+#
+# Note that:
+#
+# * *ORDER IS SIGNIFICANT.* In particular, the "posix_default" and "gnu_compat"
+#   options *MUST* be the first and second options in that exact order. If
+#   *NOT* the case, Getopt::Long() will fail to parse otherwise valid options:
+#        $ mvre -cr '\b2014-2020\b' '2020' datetime/
+#        Option c does not take an argument
+#        mvre: See "mvre --help" for further details.
+#   All remaining options may be specified in any arbitrary order.
+# * The "auto_help" option automatically calling pod2usage() does *NOT*
+#   behave as expected, for unknown reasons. Ergo we do so manually instead.
+Getopt::Long::Configure qw(
+    posix_default
+    gnu_compat
+
+    auto_version
+    bundling
+    no_ignore_case
+);
+
+# Parse options. If the caller passed one or more invalid options (as insanely
+# indicated by this function call failing with a non-zero return value),
+# display a fatal error referencing the "--help" option.
+Getopt::Long::GetOptions(
+    \%options,
+    'cp',
+    'mv',
+    'file-contents|c!',
+    'file-names|n!',
+    'help|?' => \&_print_usage_help,
+    'recursive|r',
+    'quiet|q',
+) or _print_usage_error();
+
+# If the caller passed an insufficient number of mandatory arguments, display a
+# fatal error referencing both that and the "--help" option.
+@ARGV >= 2 or _print_usage_error(
+    'Expected at least one regular expression and one replacement pattern.');
+
+# ....................{ OPTIONS ~ defaults                 }....................
+# Define default values for undefined options. This is principally based on the
+# script name: e.g., when called as "subst-pcre," this script automatically
+# enables the "--file-contents" option and disables the "--file-names" option.
+
+if ($script_name =~ m~^sub~) {
+    if (!defined $options{'file-contents'}) { $options{'file-contents'} = true; }
+    if (!defined $options{'file-names'})    { $options{'file-names'} = false; }
+}
+
+if (!defined $options{'file-names'} && !defined $options{'file-contents'}) {
+             $options{'file-names'} = true;
+}
+
+# ....................{ I/O                                }....................
+sub mutter(;$) { my $slur = shift || ""; $options{quiet} || print $slur; }
+sub utter (;$) { my $slur = shift || ""; $options{quiet} || print "${script_name}: $slur"; }
+sub curse (;$) { my $slur = shift || "";                    croak "${script_name}: $slur\n"; }
+
+#FIXME: Avoid doing any of this if "$options{quiet}" is false.
+{
+    my $term = new Term::ReadLine $script_name;
+
+    sub query (;$) {
+        $options{quiet} && return "";
+        my $question = shift || "";
+
+        return $term->readline("${script_name}: ${question} ");
+    }
+}
+
+sub query_bool(;$) {
+    $options{quiet} && return true;
+    my $question = shift || "";
+
+    return query("${question} [yes/[no]]") =~ m~^y|ye|yes$~i;
+}
+
+# Disable output buffering.
+$| = 1;
+
+# ....................{ PROCESS HANDLING                   }....................
+#FIXME: Possibly unlikely to behave as expected under Windows, due to process
+#exit codes being non-POSIX-compliant. We probably want to leverage a standard
+#Perl module instead.
+sub run($) {
+    my $shell_command = shift;
+
+    system($shell_command) == success ||
+        curse qq{"$shell_command" failed with: \{$?\} $!};
+}
+
+# ....................{ INIT                               }....................
+my $from_pattern = shift @ARGV;
+my $into_pattern = shift @ARGV;
+
+#FIXME: We also need to protect all "/" characters in both $from_pattern and
+#$into_pattern with similar automatic escaping.
+
+# Protect the replacement pattern from both "%"-style hash interpolation *AND*
+# "@"-style list interpolation.
+$into_pattern =~ s~\@~\\@~g;
+$into_pattern =~ s~\%~\\%~g;
+
+# If copying or moving files and the last command-line argument is a path, that
+# path signifies the path to which those files should be copied or moved;
+# extract now, before extracting further command-line arguments.
+my $target_path;
+if ($options{'file-names'} && @ARGV && -d $ARGV[-1]) {
+    $target_path = pop @ARGV;
+
+    (substr($target_path, -1, 1) eq '/') or
+            $target_path     .=     '/';
+}
+
+# All remaining command-line arguments refer to source files and paths. As
+# this script requires at least one such source file or path to act on, if
+# there are no such command-line arguments remaining, fabricate arguments by
+# glob-listing all readable files and paths in the current working directory.
+if (not @ARGV) { push @ARGV, grep { ! m~^\.$|^\.\.$~ } glob('{*,.*}'); }
+my @source_files_and_paths = @ARGV;
+
+# ....................{ REPLACEMENT ~ content              }....................
+# FIXME: add a new command-line argument: -f/--fork. If set, then do
+# perl -pie style substitutions. Otherwise, do the substitutions in
+# perl, internally here. For the code, see:
+#
+# http://www.cclabs.missouri.edu/things/instruction/perl/perlcourse.html
+{
+    my @source_files;
+
+    sub substitute_file_contents() {
+        # ~~~~~~~~~~~~~~~~{ recursion                          }~~~~~~~~~~~~~~~~
+        if ($options{recursive}) {
+            my @source_paths =   @source_files_and_paths
+                ? grep { -d $_ } @source_files_and_paths : ($current_path);
+
+            if (@source_paths) {
+                utter "recursively searching paths for applicable text files: ";
+                find({ wanted=> \&add_text_files_to_source_files,
+                       no_chdir=> true }, @source_paths);
+                mutter "\n";
+            }
+            #FIXME: Reduce try between this and the duplicate else block below.
+            else {
+                @source_files = grep {
+                    -T $_ && ! -l $_ } @source_files_and_paths;
+            }
+        # If substituting non-recursively, preserve only paths satisfying all
+        # of the following constraints from the passed list of paths:
+        #
+        # * This path is a text file.
+        # * This path is *NOT* a symbolic link.
+        } else {
+            @source_files = grep {
+                -T $_ && ! -l $_ } @source_files_and_paths;
+        }
+
+        # ~~~~~~~~~~~~~~~~{ substitution                       }~~~~~~~~~~~~~~~~
+        if (!@source_files) { curse "no substitutions to make!"; }
+        else {
+            utter qq[substituting in file-contents of files:\n\n];
+
+            foreach my $source_file (@source_files) {
+                mutter qq[${source_file}\n];
+            }
+
+            print "\n";
+            utter qq[substituting in the above files:\n].
+                  qq[      "${from_pattern}"\n].
+                  qq[  ->  "${into_pattern}"\n\n];
+
+            if (query_bool("would you like to make these substitutions?")) {
+                utter "substituting...\n\n";
+
+                foreach my $source_file (@source_files) {
+                    print "$source_file\n";
+
+                    # Protect filename-embedded quotes and double quotes from
+                    # shell expansion.
+                    $source_file =~ s~\'~'\\''~g;  # bizarre quote protection; *shrug*
+
+                    #FIXME: Ambiguously running the "perl" in the current
+                    #${PATH} (if there even is such a command) is extremely
+                    #non-ideal. Instead, we should absolutely discover the
+                    #absolute filename of the Perl interpreter running the
+                    #current script and explicitly invoke that instead.
+                    #FIXME: Indeed! Research suggests the following
+                    #platform-portable solution, stripped wholesale from the
+                    #official "man perlport":
+                    #
+                    #    use Config;
+                    #    my $thisperl = $Config{perlpath};
+                    #    if ($^O ne 'VMS') {
+                    #        $thisperl .= $Config{_exe}
+                    #            unless $thisperl =~ m/\Q$Config{_exe}\E$/i;
+                    #    }
+                    #
+                    #See also this relevant (albeit less portable)
+                    #StackOverflow solution:
+                    #    https://stackoverflow.com/a/10393492/2809027
+                    #FIXME: Actually, why are we even forking processes in the
+                    #first place? We vaguely recall testing both this and the
+                    #pure-Perl approach, but can't quite recall the outcome.
+                    #Anyway, it's been over a decade; if feasible, we really
+                    #should just be implementing this in-process.
+
+                    #FIXME: Non-ideal, as this results in unnecessary write
+                    #operations and hence wear-leveling. Instead:
+                    #
+                    #* Explicitly filter the @source_files list during initial
+                    #  visitation above to exclude all source files containing
+                    #  no substrings matching $from_pattern.
+                    #
+                    #In theory, doing so should be *MORE* efficient than the
+                    #current approach -- as substantially fower process forks
+                    #*AND* disk writes should be required. In short, it's an
+                    #unconditional win with no harmful tradeoffs.
+                    run qq[perl -pi -e 's/$from_pattern/$into_pattern/g' '$source_file'];
+                }
+
+                utter "substituted.\n";
+            }
+        }
+    }
+
+    sub add_text_files_to_source_files() {
+        # If the passed path satisfies all of the following constraints, add
+        # that path to the set of paths under consideration:
+        #
+        # * This path is a text file.
+        # * This path is *NOT* a symbolic link.
+        # * This path does *NOT* reside under a directory whose basename is
+        #   equal to a version control pathname (e.g., ".git/").
+        if (-T $_ && ! -l $_ && $_ !~ m~$vcs_directory_basename_regex~) {
+            mutter ".";
+            push @source_files, rel2abs($File::Find::name);
+        }
+        else {
+            mutter "!";
+        }
+    }
+}
+
+# ....................{ REPLACEMENT ~ filename             }....................
+sub substitute_filenames() {
+    my $is_moving_files = ($script_name =~ m~^mv~ ? 'mv' : 'cp');
+    if ($options{mv}) { $is_moving_files = true;  }
+    if ($options{cp}) { $is_moving_files = false; }
+
+    my ($operator_string, $operation_string, $operated_string);
+    if ($is_moving_files) {
+        $operator_string = "  ->  ";
+        $operation_string = "moving";
+        $operated_string =  "moved";
+    }
+    else {
+        $operator_string = "  ~>  ";
+        $operation_string = "copying";
+        $operated_string =  "copied";
+    }
+
+    my @source_file_to_target_file_list;
+    my ($source_file_name, $source_path);
+    my ($target_file_name, $target_file);
+
+    # ~~~~~~~~~~~~~~~~~~{ recursion                          }~~~~~~~~~~~~~~~~~~
+    if ($options{recursive}) {
+        my @source_paths = @source_files_and_paths
+        ? grep { -d $_ }   @source_files_and_paths
+        : ($current_path)
+        ;
+
+        if (@source_paths) {
+            utter "recursively searching paths for applicable files and paths: ";
+            find({ wanted=> \&add_all_files_and_paths_to_source_files_and_paths,
+                   no_chdir=> true }, @source_paths);
+            mutter "\n";
+        }
+    }
+
+    # ~~~~~~~~~~~~~~~~~~{ dry run                            }~~~~~~~~~~~~~~~~~~
+    utter qq[substituting "${from_pattern}" for "${into_pattern}" in filenames by ].
+          qq[${operation_string} files:\n\n];
+
+#   utter "sfap: @source_files_and_paths";
+    foreach my $source_file (@source_files_and_paths) {
+        ($source_file_name, $source_path) = fileparse($source_file);
+
+        if ($source_path =~ m~^\.|\./$~) {
+            $source_path = $current_path;
+        }
+
+        #FIXME: Ideally, this should leverage the block form of "eval":
+        #    https://perldoc.perl.org/functions/eval.html
+        #If that fails to suffice, we should reconsider usage of "eval"
+        #entirely. Surely Perl supports dynamic substitutions with variables?
+        #This strikes us as extreme overkill.
+        $target_file_name = $source_file_name;
+        eval "\$target_file_name =~ s/$from_pattern/$into_pattern/g";
+
+        $source_file = $source_path.$source_file_name;
+        $target_file =
+            (defined $target_path ? $target_path : $source_path).$target_file_name;
+#       utter "s: $source_file; t: $target_file\n";
+
+        if ($source_file ne $target_file) {
+            mutter qq[${source_file}${operator_string}${target_file}\n];
+            push @source_file_to_target_file_list, [ $source_file, $target_file ];
+        }
+    }
+
+    # ~~~~~~~~~~~~~~~~~~{ real run                           }~~~~~~~~~~~~~~~~~~
+    if (!@source_file_to_target_file_list) {
+        curse "no substitutions to make!";
+    } else {
+        if (query_bool('would you like to make these filename substitutions?')) {
+            utter "${operation_string}...\n\n";
+            my ($source_file, $target_file);
+
+            foreach my $source_file_to_target_file (@source_file_to_target_file_list) {
+                $source_file = @$source_file_to_target_file[0];
+                $target_file = @$source_file_to_target_file[1];
+                mutter qq[${source_file}${operator_string}${target_file}\n];
+
+                $is_moving_files
+                    ? rename $source_file, $target_file
+                    : copy   $source_file, $target_file;
+            }
+
+            mutter "\n";
+            utter "${operated_string}.\n";
+        }
+    }
+
+    sub add_all_files_and_paths_to_source_files_and_paths() {
+        # If the passed path is readable and is a file, symlink, or directory
+        # whose basename is not equal to a version control pathname (e.g.,
+        # ".git/"), then add that path to the set of paths under consideration.
+#       if (-r $_ && (-f $_ || -l $_ ||
+#          (-d $_ && basename($_) !~ m~$vcs_directory_basename_regex~))) {
+        if (-r $_ && (-f $_ || -l $_ || -d) &&
+            $_ !~ m~$vcs_directory_basename_regex~) {
+            mutter ".";
+            push @source_files_and_paths, rel2abs($File::Find::name);
+        }
+        else {
+            mutter "!";
+        }
+    }
+}
+
+# ....................{ EXECUTION                          }....................
+# Perform file-content substitution first, since performing filename
+# substitution invalidates all of the @source_files array's filenames.
+ $options{'file-contents'} && substitute_file_contents();
+ $options{'file-names'}    && substitute_filenames();
+
+!$options{'file-contents'} &&
+!$options{'file-names'} &&
+    die "nothing to do! (not substituting on filenames or file contents)";
+
+# ....................{ POSTAMBLE                          }....................
+success;
+__END__
+
+# ....................{ POD                                }....................
+=head1 NAME
+
+mvre - Move files or replace file contents with regular expressions
+cpre - Copy files or replace file contents with regular expressions
+
+=head1 SYNOPSIS
+
+  cpre [OPTION]... SEARCH-REGEX REPLACE-PATTERN [SOURCE]... [DIRECTORY]
+  mvre [OPTION]... SEARCH-REGEX REPLACE-PATTERN [SOURCE]... [DIRECTORY]
+
+  options:
+
+  -c,--file-contents     replace file contents in-place
+  --no-file-contents     do not replace file contents in-place [default]
+  -n,--file-names        replace filenames by copying or moving [default]
+  --no-file-names        do not replace filenames
+  --cp                   copy rather than move files when replacing filenames
+                         [default if run as "cpre"]
+  --mv                   move rather than copy files when replacing filenames
+                         [default if run as "mvre"]
+  -r,--recursive         if passed no [SOURCE]... files, recursively match all
+                         text files under current directory and subdirectories
+                         (defaults to non-recursive matching)
+  -q,--quiet             do not print messages or prompt for interactive input
+  -?,--help              print this help message
+
+  SEARCH-REGEX:  PCRE-based search pattern:      e.g., '^(\d+)\s*(\w+)\.mp3$'
+  REPLACE-REGEX: PCRE-based replacement pattern: e.g., '\1 ~ (\2).mp3.bak'
+
+  [SOURCE]...: One or more source files to be operated upon.
+               [defaults to all plaintext files under either:
+                * if passed "-r", current directory and subdirectories
+                * else, current directory only]
+  DIRECTORY:   Directory to copy or move source files matching SEARCH-REGEX to.
+               [defaults to current directory]
+
+=head1 OPTIONS
+
+=over 2
+
+=item B<--cp>
+
+Replace filenames by copying rather than moving files.
+
+If passed neither B<--cp> nor B<--mv> and I<not> run as F<mvre>, this option
+is enabled by default.
+
+=item B<--mv>
+
+Replace filenames by moving rather than copying files.
+
+If passed neither B<--cp> nor B<--mv> and run as F<mvre>, this option is
+enabled by default.
+
+=item B<--file-contents>
+
+Rewrite file contents in-place by replacing all substrings matching the passed
+Perl Compatible Regular Expression (PCRE) search pattern in the plaintext
+contents of all passed source filenames with the passed PCRE replacement
+pattern (e.g., C<mvre -cr '^(\d)--(\w)\.txt$' '\2~\1.doc'>, recursively
+rewriting all matching lines of all plaintext files under the current
+directory).
+
+For safety, binary files are implicitly ignored when rewriting file contents.
+
+Disabled by default. See also B<--file-names>.
+
+=item B<--file-names>
+
+Move or copy files by replacing all substrings matching the passed
+Perl Compatible Regular Expression (PCRE) search pattern in all passed source
+filenames with the passed PCRE replacement pattern (e.g.,
+C<mvre -r '^(\d+)\s*(.+?)\.mp3$' '\1~\2.mp3.bak'>, recursively renaming all
+matching MP3 files under the current directory).
+
+If passed:
+
+=over 2
+
+=item *
+
+Neither B<--file-names> nor B<--file-contents>, this option is enabled by
+default.
+
+=item *
+
+Both B<--file-names> and B<--file-contents>, the same replacement is performed
+first on file contents and then on filenames.
+
+=back
+
+See also B<--cp> and B<--mv>.
+
+=item B<--help>
+
+Print this help message and exit.
+
+=item B<--quiet>
+
+Do I<not> print informative messages or prompt the user for interactive input.
+By default, this script prints informative messages and prompts the user for
+interactive input; that is, it behaves B<verbosely>.
+
+=item B<--recursive>
+
+Recursively find plaintext files to be replaced from relevant directories.
+Specifically, if passed:
+
+=over 2
+
+=item *
+
+No B<[SOURCE]...> paths, recursively match all plaintext files residing under
+the current directory and all subdirectories of this directory.
+
+=item *
+
+One or more B<[SOURCE]...> paths, recursively match all plaintext files
+residing under all B<[SOURCE]...> paths that are directories.
+
+=back
+
+=back
+
+=head1 ARGUMENTS
+
+=over 2
+
+=item B<SEARCH-REGEX>
+
+Mandatory Perl Compatible Regular Expression (PCRE) search pattern matching all
+filenames and/or file contents to be replaced by the passed B<REPLACE-PATTERN>.
+
+=item B<REPLACE-PATTERN>
+
+Mandatory Perl Compatible Regular Expression (PCRE) substitution pattern
+replacing all filename and/or file content substrings matched by the passed
+B<SEARCH-REGEX>.
+
+=item B<[SOURCE]...>
+
+Optional whitespace-delimited list of one or more source filenames to be
+operated upon. Defaults to either:
+
+=over 2
+
+=item *
+
+If passed B<--recursive>, all plaintext files recursively discovered under the
+current directory and all subdirectories of this directory.
+
+=item *
+
+Else, all plaintext files non-recursively discovered under only the current
+directory.
+
+=back
+
+=item B<DIRECTORY>
+
+Optional dirname of the target directory to copy or move source filenames into
+when replacing filenames. Defaults to the current directory. Ignored if passed
+B<--file-contents>.
+
+=back
+
+=head1 DESCRIPTION
+
+This script both:
+
+=over 2
+
+=item *
+
+Moves and copies files by replacing all substrings matching the passed
+Perl Compatible Regular Expression (PCRE) search pattern in all passed source
+filenames with the passed PCRE replacement pattern.
+
+=item *
+
+Rewrites file contents in-place by replacing all substrings matching the passed
+PCRE search pattern in the plaintext contents of all passed source filenames
+with the passed PCRE replacement pattern.
+
+=back
+
+=head1 EXAMPLES
+
+  # Copy all paths matching "~/tmp/*.tmp" "~/tmp/*.tmp.old".
+  cd ~/tmp
+  cpre '\.tmp$' '.tmp.old'
+
+  # Copy all paths matching "~/tmp/*.tmp" "~/tmp/*.tmp.old", functionally
+  # equivalent to the prior example.
+  cpre --file-names --cp '^(.*)\.tmp$' '\1.tmp.old' ~/tmp
+
+  # Rename all files and paths in any directories below and including the
+  # current directory matching pattern "01--whatis.txt", "02--updoc.txt", etc.,
+  # to "whatis~01.doc", "updoc~02.doc", etc.; and also change any strings in
+  # the contents of any text files in any directories below and including the
+  # current directory matching that same pattern to that some replacement text.
+  # (Power; glorious, gladdening, rawly maddening power.)
+  mvre --recursive --file-names --file-contents '^(\d)--(\w)\.txt$' '\2~\1.doc'
+
+=head1 BUGS
+
+B<Absolutely none.> Very well... probably more than several. Although this
+script formed the core backbone of my CLI-based development workflow for two
+decades, your mileage may (tragically) vary.
+
+Please submit issues to L<our GitHub-hosted bug
+tracker|https://github.com/leycec/mvre/issues> when things inevitably go
+south of computational heaven.
+
+=head1 SEE ALSO
+
+=over 2
+
+=item *
+
+L<perlre>, L<perlrequick>, and L<perlretut> man pages for further details on
+PCRE syntax and semantics.
+
+=back
+
+=head1 LICENSE
+
+Copyright (c) 2007-2025 Cecil Curry
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+=cut
