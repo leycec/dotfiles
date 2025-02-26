@@ -1421,8 +1421,26 @@ if +command.is python3; then
     }
 fi
 
+# ....................{ FUNCTIONS ~ command : python : pyen}....................
+#FIXME: Migrate from "pyenv" to "uv". While great for installing Python
+#interpreters, that's all "pyenv" is great for. Notably, "pyenv" lacks
+#functionality to upgrade all previously installed packages -- something we very
+#much need. Enter "uv", which is basically the superset of "pyenv". Like
+#"pyenv", "uv" manages Python versions. Unlike "pyenv", "uv" also provides
+#functionality out-of-the-box for upgrading all previously installed packages.
+#
+#Technically, we *COULD* keep limping along with "pyenv" for the moment by
+#installing one of the following two "pyenv" plugins:
+#    https://github.com/zyrikby/pyenv-pip-upgrade  # <-- prolly the best
+#    https://github.com/massongit/pyenv-pip-update
+#    https://github.com/jgonggrijp/pip-review
+#
+#The issue is that literally *ALL* of those utilities are unmaintained. So, "uv"
+#still remains the only viable long-term solution. *sigh*
+
 # If "pyenv" is in the current ${PATH}...
 if +command.is pyenv; then
+    # ....................{ SETUP                          }....................
     # Initialize "pyenv" for use under the current shell. See also:
     #     https://github.com/pyenv/pyenv#b-set-up-your-shell-environment-for-pyenv
     export PYENV_ROOT="${HOME}/py/pyenv"
@@ -1441,18 +1459,6 @@ if +command.is pyenv; then
     #       _PYTHON_VERSIONS='3.9 3.10 3.11 3.12 3.13'  # <-- bad, which is sad
     declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.13 3.12 3.11 3.10 3.9)
 
-    # Alias common "pyenv" subcommands.
-    alias pye='pyenv'
-    alias pyei='pyenv install'
-
-    #FIXME: This should probably just be a human-readable function named
-    #+python.install_pythons() instead. *sigh*
-    #FIXME: Also, we probably want a new +python.install_beartype() function as
-    #well that editably installs beartype under all active Pythons.
-
-    # Define an alias (re)installing *ALL* actively maintained CPython versions.
-    alias pyeia="pyenv install ${_PYTHON_VERSIONS[@]}"
-
     # Define one shell alias "python{major}.{minor}" for each previously
     # installed Python version.
     #
@@ -1461,6 +1467,96 @@ if +command.is pyenv; then
     # Nonetheless, we intentionally include that version as well in this list to
     # avoid polluting the system CPython interpreter with conflicting packages.
     pyenv global ${_PYTHON_VERSIONS[@]}
+
+    # ....................{ ALIASES                        }....................
+    # Alias actively maintained Python interpreters.
+    alias py='python'
+    alias py13='python3.13'
+    alias py12='python3.12'
+    alias py11='python3.11'
+    alias py10='python3.10'
+    alias py9='python3.9'
+
+    # Alias common "pip" subcommands.
+    alias pipi='pip install'
+    alias pipu='pip install --upgrade'
+
+    # Alias common "pyenv" subcommands.
+    alias pye='pyenv'
+    alias pyei='pyenv install'
+
+    # ....................{ FUNCTIONS                      }....................
+    # str +python.install_pythons()
+    #
+    # (Re)install *ALL* actively maintained CPython interpreters via the
+    # third-party "pyenv" manager.
+    function +python.install_pythons() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.'
+            return 1
+        }
+
+        # (Re)install *ALL* actively maintained CPython interpreters.
+        pyenv install ${_PYTHON_VERSIONS[@]}
+    }
+
+    # str +python.upgrade_pip()
+    #
+    # Upgrade "pip" under *ALL* actively maintained CPython interpreters.
+    function +python.upgrade_pip() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.'
+            return 1
+        }
+
+        # For each actively maintained CPython interpreter...
+        local python_version python_command
+        for   python_version in "${_PYTHON_VERSIONS[@]}"; do
+            echo "Upgrading \"pip\" under Python ${python_version}..."
+
+            # Unqualified basename of this interpreter.
+            python_command="python${python_version}"
+
+            # Upgrade "pip" under this interpreter.
+            "${python_command}" -m pip install --upgrade pip
+            echo
+        done
+    }
+
+    # If @beartype is installed to a predetermined user-specific directory...
+    if [[ -d "${HOME}/py/beartype" ]]; then
+        # str +python.install_beartype()
+        #
+        # (Re)install both @beartype and *ALL* (technically optional) test-time
+        # dependencies thereof into *ALL* actively maintained CPython
+        # interpreters.
+        function +python.install_beartype() {
+            (( $# == 0 )) || {
+                echo 'Expected no arguments.'
+                return 1
+            }
+
+            # Temporarily change to the directory providing @beartype.
+            pushd "${HOME}/py/beartype"
+
+            # For each actively maintained CPython interpreter...
+            local python_version python_command
+            for   python_version in "${_PYTHON_VERSIONS[@]}"; do
+                echo "Installing @beartype under Python ${python_version}..."
+
+                # Unqualified basename of this interpreter.
+                python_command="python${python_version}"
+
+                # Install @beartype editably along with *ALL* developer-specific
+                # optional dependencies under this interpreter.
+                "${python_command}" -m pip install -e '.[dev]'
+                echo
+            done
+
+            # Revert to the prior directory.
+            popd
+        }
+    fi
 fi
 
 # ....................{ FUNCTIONS ~ command : python : ana }....................
@@ -1876,7 +1972,7 @@ if [[ -d /usr/src/linux ]]; then
         # * All subsequent steps that have yet to be performed would
         #   prematurely fail with non-zero exit status.
         (
-            # Change to the directory defining the current kernel.
+            # Temporarily change to the directory defining the current kernel.
             pushd /usr/src/linux
 
             echo 'Mounting boot partition...'
