@@ -435,8 +435,13 @@ if [[ -n "${IS_ZSH}" ]]; then
         # Array of the names of all "oh-my-zsh" plugins to be enabled.
         local -a plugins; plugins=(git sudo zsh-256color zsh-autosuggestions zsh-syntax-highlighting)
 
-    # Enable "oh-my-zsh" with these plugins.
+        # Enable "oh-my-zsh" with these plugins.
         source "${_OHMYZSH_FILENAME}"
+
+        # Prevent "oh-my-zsh" from sharing history across all open terminals,
+        # which "oh-my-zsh" inexplicably does by default. Unsurprisingly,
+        # everybody hates this. This includes us.
+        unsetopt share_history
     fi
 
     # If the "pokemon-colorscripts" command is in the current "${PATH}", run
