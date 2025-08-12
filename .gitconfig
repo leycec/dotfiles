@@ -69,7 +69,9 @@
     cleanup = scissors
 [core]
     editor = vim
-    pager = less -FRSX
+    # Dismantled, this is:
+    # * "-s", wrap rather than truncate long lines.
+    pager = less -FRXs
 [init]
     defaultBranch = main
 [pull]

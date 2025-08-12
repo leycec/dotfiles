@@ -2,7 +2,7 @@
 # ====================[ .bashrc                            ]====================
 #
 # --------------------( LICENSE                            )--------------------
-# Copyright 2008-2020 by Cecil Curry.
+# Copyright 2008-2025 by Cecil Curry.
 # See "LICENSE" for further details.
 #
 # --------------------( SYNOPSIS                           )--------------------
@@ -40,17 +40,17 @@
 
 # ....................{ SHELLS                             }....................
 # 1 if the current shell is bash and the empty string otherwise.
-IS_BASH=
+_IS_BASH=
 
 # 1 if the current shell is zsh and the empty string otherwise.
-IS_ZSH=
+_IS_ZSH=
 
 # If the current shell is zsh, define the above booleans accordingly.
 if [[ -n "${ZSH_VERSION}" ]]; then
-    IS_ZSH=1
+    _IS_ZSH=1
 # Else if the current shell is bash, define the above booleans accordingly.
 elif [[ -n "${BASH_VERSION}" ]]; then
-    IS_BASH=1
+    _IS_BASH=1
 # Else, the current shell is unrecognized. In this case...
 else
     # Print a human-readable error message to stderr.
@@ -63,8 +63,8 @@ fi
 # ....................{ INTERACTIVE                        }....................
 # If the current shell is non-interactive, silently reduce to a noop to avoid
 # breaking low-level fragile shells (e.g., "scp", "rcp") intolerate of output.
-if   [[ -n "${IS_ZSH}"  ]]; then [[ -o interactive ]] || return
-elif [[ -n "${IS_BASH}" ]]; then [[ $- == *i*      ]] || return
+if   [[ -n "${_IS_ZSH}"  ]]; then [[ -o interactive ]] || return
+elif [[ -n "${_IS_BASH}" ]]; then [[ $- == *i*      ]] || return
 fi
 # Else, the current shell is interactive. To quoth the Mario: "Let's a-go!"
 
@@ -223,7 +223,7 @@ export HISTFILESIZE=2000
 # 1 if this is a login shell or the empty string otherwise. (Set below.)
 _IS_LOGIN=
 
-if [[ -n "${IS_ZSH}" ]]; then
+if [[ -n "${_IS_ZSH}" ]]; then
     export SAVEHIST=1000
 
     # Dismantled, this is:
@@ -234,7 +234,7 @@ if [[ -n "${IS_ZSH}" ]]; then
 
     # Record whether this is a login shell or not.
     [[ -o login ]] && _IS_LOGIN=1
-elif [[ -n "${IS_BASH}" ]]; then
+elif [[ -n "${_IS_BASH}" ]]; then
     # Avoid appending both duplicate lines and space-prefixed lines.
     export HISTCONTROL=ignoreboth
 
@@ -301,7 +301,7 @@ fi
 # ....................{ GLOBALS ~ colour : prompt         }....................
 # If this shell supports color, define a colorful shell prompt.
 if [[ -n "${_IS_COLOR}" ]]; then
-    if [[ -n "${IS_ZSH}" ]]; then
+    if [[ -n "${_IS_ZSH}" ]]; then
         # Dismantled, this is:
         #
         # * "%B" and "%b", enabling and disabling boldface respectively.
@@ -320,7 +320,7 @@ if [[ -n "${_IS_COLOR}" ]]; then
         # * The "SIMPLE PROMPT ESCAPES" section of "man zshmisc".
         PROMPT='%B%(!.%F{red}.%F{green})[%bzsh%B]%f %F{cyan}%~%f %F{blue}\$%f%b '
         # PROMPT='%B%(!.%F{red}%n%f .)%F{cyan}%~%f %F{blue}\$%f%b '
-    elif [[ -n "${IS_BASH}" ]]; then
+    elif [[ -n "${_IS_BASH}" ]]; then
         # If this is the superuser, define a superuser-specific prompt.
         if [[ ${EUID} == 0 ]]; then
             PS1='\[\033[01;31m\][\[\033[00;31m\]bash\[\033[01;31m\]]\[\033[00m\] \[\033[01;33m\]\w \[\033[01;35m\]\$\[\033[00m\] '
@@ -330,9 +330,9 @@ if [[ -n "${_IS_COLOR}" ]]; then
         fi
     fi
 else
-    if [[ -n "${IS_ZSH}" ]]; then
+    if [[ -n "${_IS_ZSH}" ]]; then
         PROMPT='%n %~$ '
-    elif [[ -n "${IS_BASH}" ]]; then
+    elif [[ -n "${_IS_BASH}" ]]; then
         PS1='\u \w\$ '
     fi
 fi
@@ -405,15 +405,19 @@ fi
 
 # ....................{ DEPENDENCIES                       }....................
 # If the current shell is zsh...
-if [[ -n "${IS_ZSH}" ]]; then
+if [[ -n "${_IS_ZSH}" ]]; then
 #   echo 'Enabling zsh-specific dependencies...'
-
-    # Absolute filename of the system-wide zsh-specific "powerlevel10k" theme.
-    local _POWERLEVEL10K_FILENAME='/usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme'
 
     # Absolute filename of system-wide zsh-specific "oh-my-zsh" launch script.
     local _OHMYZSH_FILENAME='/usr/share/oh-my-zsh/oh-my-zsh.sh'
 
+    # Absolute filename of the system-wide zsh-specific "powerlevel10k" theme.
+    local _POWERLEVEL10K_FILENAME='/usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme'
+
+    #FIXME: Consider switching to "starship" instead. HyDE now enables
+    #"starship" rather than "powerlevel10k" by default. Presumably, there exists
+    #a good reason for this. We can't particularly be bothered at the moment,
+    #though. For now, "powerlevel10k" is the power we preserve! \o/
     # If "powerlevel10k" exists...
     #
     # Note that this theme may be customized by either:
@@ -433,7 +437,13 @@ if [[ -n "${IS_ZSH}" ]]; then
     # If "oh-my-zsh" exists...
     if [[ -f "${_OHMYZSH_FILENAME}" ]]; then
         # Array of the names of all "oh-my-zsh" plugins to be enabled.
-        local -a plugins; plugins=(git sudo zsh-256color zsh-autosuggestions zsh-syntax-highlighting)
+        local -a plugins; plugins=(
+            git
+            sudo
+            zsh-256color
+            zsh-autosuggestions
+            zsh-syntax-highlighting
+        )
 
         # Enable "oh-my-zsh" with these plugins.
         source "${_OHMYZSH_FILENAME}"
@@ -444,10 +454,11 @@ if [[ -n "${IS_ZSH}" ]]; then
         unsetopt share_history
     fi
 
-    # If the "pokemon-colorscripts" command is in the current "${PATH}", run
-    # this command to display *ADORABLE* ASCII artwork at shell startup.
-    +command.is pokemon-colorscripts &&
-        command pokemon-colorscripts --no-title -r 1,3,6
+    #FIXME: Excise us up, please. This is now handled by "pokego" instead.
+    # # If the "pokemon-colorscripts" command is in the current "${PATH}", run
+    # # this command to display *ADORABLE* ASCII artwork at shell startup.
+    # +command.is pokemon-colorscripts &&
+    #     command pokemon-colorscripts --no-title -r 1,3,6
 fi
 
 # ....................{ FUNCTIONS ~ path                   }....................
@@ -1372,7 +1383,7 @@ if +command.is rsync; then
 
     #FIXME: Remove after no longer required, please.
     function +rsync.telynau() {
-        +rsync.safe leycec@192.168.1.191:/home/leycec/pri /home/leycec/
+        +rsync.safe leycec@192.168.1.191:/home/leycec/pub/old /home/leycec/pub/
 
 #       for basename in note; do
         # for basename in audio; do
@@ -1459,10 +1470,12 @@ if +command.is pyenv; then
     # * *MUST* be listed in descending order (i.e., from most to least recently
     #   released). Doing so ensures that the "python" and "python3" commands
     #   correspond to the most recently released Python version, as expected.
+    # * The exceptions are pre-releases, which should be listed anywhere
+    #   *EXCEPT* as the first entries -- and for the same exact reason.
     # * *CANNOT* be defined as a space-delimited string. Doing so causes this
     #   string to be interpreted as a single literal: e.g.,
-    #       _PYTHON_VERSIONS='3.9 3.10 3.11 3.12 3.13'  # <-- bad, which is sad
-    declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.13 3.12 3.11 3.10 3.9)
+    #       _PYTHON_VERSIONS='3.9 3.10 3.11 3.12 3.13 3.14'  # <-- bad, which is sad
+    declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.14.0b3 3.13 3.12 3.11 3.10 3.9 pypy3.11)
 
     # Define one shell alias "python{major}.{minor}" for each previously
     # installed Python version.
@@ -1476,11 +1489,13 @@ if +command.is pyenv; then
     # ....................{ ALIASES                        }....................
     # Alias actively maintained Python interpreters.
     alias py='python'
+    alias py14='python3.14'
     alias py13='python3.13'
     alias py12='python3.12'
     alias py11='python3.11'
     alias py10='python3.10'
     alias py9='python3.9'
+    alias pypy11='pypy3.11'
 
     # Alias common "pip" subcommands.
     alias pipi='pip install'
@@ -1489,8 +1504,66 @@ if +command.is pyenv; then
     # Alias common "pyenv" subcommands.
     alias pye='pyenv'
     alias pyei='pyenv install'
+    alias pyeu='pyenv uninstall'
 
     # ....................{ FUNCTIONS                      }....................
+    # void +python.enable_python(str python_version)
+    #
+    # Temporarily switch the active Python interpreter under the current shell
+    # to the interpreter with the passed version previously installed by the
+    # third-party "pyenv" manager.
+    function +python.enable_python() {
+        (( $# == 1 )) || {
+            echo 'Expected one Python version.'
+            return 1
+        }
+
+        # Temporarily switch to the passed Python interpreter.
+        command pyenv global "${1}"
+    }
+
+    # void +python.enable_python_system()
+    #
+    # Temporarily restore the system-wide Python interpreter under the current
+    # shell to the active Python interpreter.
+    function +python.enable_python_system() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.'
+            return 1
+        }
+
+        # Temporarily restore the system-managed Python interpreter as the active
+        command pyenv global system
+    }
+
+    # str +python.list_pythons_installed()
+    #
+    # Print a list of all Python versions previously installed with the
+    # third-party "pyenv" manager.
+    function +python.list_pythons_installed() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.'
+            return 1
+        }
+
+        # List all installed Python versions.
+        command pyenv versions
+    }
+
+    # str +python.list_pythons_installable()
+    #
+    # Print a list of all possible Python versions remotely downloadable and
+    # locally installable by the third-party "pyenv" manager.
+    function +python.list_pythons_installable() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.'
+            return 1
+        }
+
+        # List all supported Python versions.
+        command pyenv install --list | less
+    }
+
     # str +python.install_pythons()
     #
     # (Re)install *ALL* actively maintained CPython interpreters via the
@@ -1502,7 +1575,7 @@ if +command.is pyenv; then
         }
 
         # (Re)install *ALL* actively maintained CPython interpreters.
-        pyenv install ${_PYTHON_VERSIONS[@]}
+        command pyenv install ${_PYTHON_VERSIONS[@]}
     }
 
     # str +python.upgrade_pip()
@@ -1618,7 +1691,7 @@ fi
         # development of in-house projects exists (e.g., our core
         # +ionyou.update() function), evaluate that script as well.
         local IONYOU_CONDA_SCRIPT="${HOME}/py/ionyou/conda/dev/environment_funcs.zsh"
-        [[ -n "${IS_ZSH}" && -f "${IONYOU_CONDA_SCRIPT}" ]] &&
+        [[ -n "${_IS_ZSH}" && -f "${IONYOU_CONDA_SCRIPT}" ]] &&
             source "${IONYOU_CONDA_SCRIPT}"
 
         # Display metadata on the active Python interpreter for disambiguity.
@@ -2011,7 +2084,7 @@ fi
 # ....................{ MODULES ~ zsh                     }....................
 # Lazily load zsh-specific modules (i.e., optional C-based extensions),
 # commonly defining useful functions and variables.
-if [[ -n "${IS_ZSH}" ]]; then
+if [[ -n "${_IS_ZSH}" ]]; then
     # Lazily load the following modules:
     #
     # * "colors", defining the ${fg} and ${bg} associative arrays whose:
@@ -2028,7 +2101,7 @@ if [[ -n "${IS_ZSH}" ]]; then
 fi
 
 # ....................{ OPTIONS                           }....................
-if [[ -n "${IS_ZSH}" ]]; then
+if [[ -n "${_IS_ZSH}" ]]; then
     # Change to directories in command position (i.e., specified as the first
     # shell word of a given command).
     setopt autocd
@@ -2046,7 +2119,7 @@ if [[ -n "${IS_ZSH}" ]]; then
 
     # Emulate Vi[m] modality on reading keyboard input.
     bindkey -v
-elif [[ -n "${IS_BASH}" ]]; then
+elif [[ -n "${_IS_BASH}" ]]; then
     # Change to directories in command position (i.e., specified as the first
     # shell word of a given command).
     shopt -s autocd
@@ -2108,6 +2181,7 @@ alias p='print'
 
 # Two-letter abbreviations for great justice.
 alias ca='cat'
+alias cl='clear'
 alias cm='chmod'
 alias co='chown'
 alias cr='cp -R'
@@ -2135,8 +2209,9 @@ alias lram='+dir.list_subdirs_mtime_depth ~/pub/audio/metal 3'
 
 # CLI-specific one-to-one abbreviations.
 +command.is alsamixer && alias am='alsamixer'
-+command.is fzf && alias fz='fzf'
 +command.is btop && alias bt='btop'
++command.is fastfetch && alias fafa='fastfetch --logo-type kitty'
++command.is fzf && alias fz='fzf'
 +command.is htop && alias ht='htop'
 +command.is ipython3 && alias ipy='ipython3'
 +command.is links && alias li='links'
@@ -2230,6 +2305,7 @@ if +command.is eza; then
     alias ld='eza -alhD --icons=auto' # long list dirs
     alias ll='eza -alh  --icons=auto --sort=name --group-directories-first' # long list all
     alias lr='ll --recurse' # long list all recursive
+    alias lt='eza --icons=auto --tree' # list folder as tree
 # Else, fallback to vanilla "ls" for sanity.
 else
     alias ls="ls ${_LS_OPTIONS}"
@@ -2474,9 +2550,9 @@ fi
 #   commands, shell aliases, and shell functions with the passed names.
 # * "print" to "echo" under bash. Under zsh, the two are effectively synonyms
 #   of one another for most intents and purposes.
-if   [[ -n "${IS_ZSH}"  ]]; then
+if   [[ -n "${_IS_ZSH}"  ]]; then
     alias wh='whence -acS -x 4'
-elif [[ -n "${IS_BASH}" ]]; then
+elif [[ -n "${_IS_BASH}" ]]; then
     alias wh='type -a'
     alias print='echo'
 fi
@@ -2487,16 +2563,37 @@ fi
 # If the "systemctl" command is available, Systemd is available. In this case...
 if +command.is systemctl; then
     # Manage system-wide Systemd units.
-    alias sys='sudo systemctl'
+    # alias sys='sudo systemctl'
 
-    # Start the passed Systemd unit under the current user *AND* autostart this
-    # unit under this user on *ALL* subsequent logins as this user.
+    # Define an alias starting the passed Systemd unit under the current user
+    # *AND* autostart this unit under this user on *ALL* subsequent logins as
+    # this user.
     alias syue='systemctl enable --now --user'
+
+    # Define an alias restarting the passed Systemd unit under the current user.
+    alias syur='systemctl restart --user'
 
     # Define an alias tailing the current system logfile. By default, the
     # "journalctl" command *HEADS* rather than *TAILS* this logfile -- a largely
     # useless default that only wastes already scarce time.
-    alias jo='journalctl -e'
+    alias jos='journalctl -e'
+
+    # Define an alias tailing the current user logfile.
+    alias jou='journalctl -e --user'
+
+    # void +sleep()
+    #
+    # Sleep (i.e., hybernate, idle, suspend) the entire system in an automated
+    # manner efficiently, intelligently, and safely selecting the optimal sleep
+    # technique for the current hardware configuration.
+    function +sleep() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        command systemctl sleep
+    }
 fi
 
 # ....................{ ALIASES ~ daemon                   }....................
@@ -2566,8 +2663,10 @@ fi
 +command.is lutris       && alias lu='lutris &!'
 +command.is mcomix       && alias mc='mcomix &!'
 +command.is nicotine     && alias ni='nicotine &!'
++command.is nomacs       && alias no='nomacs &!'
 +command.is playonlinux  && alias pol='playonlinux &!'
 +command.is qtcreator    && alias qtc='qtcreator &!'
++command.is qview        && alias qv='qview &!'
 +command.is retroarch    && alias ra='retroarch &!'
 +command.is rhythmbox    && alias hh='rhythmbox &!'
 +command.is simple-scan  && alias sc='simple-scan &!'
@@ -2610,7 +2709,7 @@ fi
 
 # ....................{ COMPLETIONS                        }....................
 # If the current shell is zsh...
-if [[ -n "${IS_ZSH}"  ]]; then
+if [[ -n "${_IS_ZSH}"  ]]; then
     # Enable all default completions.
     zstyle :compinstall filename "${HOME}/.zshrc"
 
@@ -2637,7 +2736,7 @@ if [[ -n "${IS_ZSH}"  ]]; then
     # Initialize the completion subsystem.
     autoload -Uz compinit
     compinit
-elif [[ -n "${IS_BASH}" ]]; then
+elif [[ -n "${_IS_BASH}" ]]; then
     # Enable programmable completion if *NOT* in strict POSIX-compatible mode
     # and one or more of the following Bash-specific completion files exist.
     if ! shopt -oq posix; then
@@ -2691,6 +2790,8 @@ fi
 #   * A user-specific MPD configuration directory is found.
 #   * *NO* "mpd" daemon is currently running.
 function +login() {
+    echo 'Performing login shell-specific logic...'
+
     # Note that the current passphrase accepted by any private key can be
     # trivially validated manually by passing that key to the OpenSSH
     # "ssh-add" command: e.g.,
@@ -2698,7 +2799,7 @@ function +login() {
     if +command.is keychain; then
         eval "$( \
             keychain \
-            --eval --ignore-missing --quick \
+            --eval --ignore-missing --quiet \
             ~/.ssh/id_dsa ~/.ssh/id_ecdsa ~/.ssh/id_ed25519 ~/.ssh/id_rsa \
         )"
     fi
@@ -2732,12 +2833,12 @@ function +login() {
 }
 
 # If this is a login shell, (re)perform login shell startup logic.
-[[ "${_IS_LOGIN}" ]] && +login
+[[ -n "${_IS_LOGIN}" ]] && +login
 
 # ....................{ CLEANUP                           }....................
 # Export all variables defined above and referenced internally by aliases
 # and/or functions defined below to subprocesses.
-export IS_BASH IS_ZSH XDG_RUNTIME_DIR
+export _IS_BASH _IS_ZSH XDG_RUNTIME_DIR
 
 # Prevent all remaining variables defined above from polluting the environment.
 unset \

@@ -53,17 +53,22 @@
 !/.config/ncmpcpp
 !/.config/ncmpcpp/bindings
 !/.config/ncmpcpp/config
+!/.config/systemd
+!/.config/systemd/user
+!/.config/systemd/user/ssh-agent.service
+!/.config/zsh
+!/.config/zsh/.zshrc
 !/.gitconfig
 !/.ipython
 !/.ipython/profile_default
 !/.ipython/profile_default/ipython_config.py
 
 #FIXME: This seems to be obsolete. Do we still want this? *sigh*
-!/.local
-!/.local/share
-!/.local/share/jupyter
-!/.local/share/jupyter/kernels/cpython3.10
-!/.local/share/jupyter/kernels/cpython3.10/kernel.json
+# !/.local
+# !/.local/share
+# !/.local/share/jupyter
+# !/.local/share/jupyter/kernels/cpython3.10
+# !/.local/share/jupyter/kernels/cpython3.10/kernel.json
 
 !/.ssh/
 !/.ssh/config

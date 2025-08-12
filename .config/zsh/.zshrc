@@ -13,12 +13,6 @@
 # numerous low-level fragile shells (e.g., "scp", "rcp") intolerate of output.
 # To avoid spurious issues, both this script and all commands transitively run
 # by this script *MUST* run silently (i.e., output nothing).
-#
-# --------------------( CAVEATS                            )--------------------
-# *THIS FILE IS IGNORED UNDER MODERN ZSH CONFIGURATIONS.* This includes HyDE
-# (Hyprland Desktop Environment). Modern zsh configurations comply with XDG
-# expectations by officially moving this file to:
-# * "~/.config/zsh/.zshrc".
 
 # ....................{ MAIN                               }....................
 # Defer to the shell-agnostic startup script for non-login bash and zsh shells.

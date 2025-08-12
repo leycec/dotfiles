@@ -1,0 +1,30 @@
+# ====================[ ssh-agent.service                  ]====================
+#
+# --------------------( LICENSE                            )--------------------
+# Copyright 2008-2025 by Cecil Curry.
+# See "LICENSE" for further details.
+#
+# --------------------( SYNOPSIS                           )--------------------
+# User-specific startup script for the "ssh-agent" daemon, configured by the
+# corresponding "~/ssh/config" configuration file to permissively cache *ALL*
+# SSH passwords on the first successful entry of those passwords for the
+# duration of the current boot cycle.
+#
+# --------------------( SEE ALSO                           )--------------------
+# https://www.lorenzobettini.it/2023/09/hyprland-and-ssh-agent
+#     Blog article inspiring this "systemd" service. See this article for
+#     detailed installation and usage instructions under Hyprland.
+
+# ....................{ MAIN                               }....................
+[Unit]
+Description=SSH key agent
+ 
+[Service]
+Type=simple
+Environment=SSH_AUTH_SOCK=%t/ssh-agent.socket
+# DISPLAY required for ssh-askpass to work
+Environment=DISPLAY=:0
+ExecStart=/usr/bin/ssh-agent -D -a $SSH_AUTH_SOCK
+ 
+[Install]
+WantedBy=default.target
