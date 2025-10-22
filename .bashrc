@@ -873,6 +873,42 @@ if +command.is shnsplit; then
     }
 fi
 
+# ....................{ FUNCTIONS ~ command : audio : drive}....................
+# If the PulseAudio-specific "pactl" command is in the current ${PATH}...
+if +command.is pactl; then
+    # str +audio.show_pulseaudio()
+    #
+    # Print a status report synopsizing the currently running PulseAudio server.
+    function +audio.show_pulseaudio() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        # Synopsize all sinks (i.e., third-party applications) to which the
+        # currently running PulseAudio server is currently outputting audio to.
+        command pactl list sink-inputs | less
+    }
+fi
+
+# If the WirePlumber-specific "wpctl" command is in the current ${PATH}...
+if +command.is wpctl; then
+    # str +audio.show_wireplumber()
+    #
+    # Print a status report synopsizing the currently running WirePlumber
+    # server.
+    function +audio.show_wireplumber() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        # Synopsize all sinks (i.e., third-party applications) to which the
+        # currently running WirePlumber server is currently outputting audio to.
+        command wpctl status | less
+    }
+fi
+
 # ....................{ FUNCTIONS ~ command : code         }....................
 # If the third-party "git" command is in the current ${PATH}...
 if +command.is git; then
@@ -1007,6 +1043,32 @@ if +command.is mogrify; then
         # ImageMagick's "mogrify" command mostly trivializes image conversion.
         echo "Converting images to \"${trg_filetype}\"..."
         command mogrify -format "${trg_filetype}" "${@[1,-2]}"
+    }
+
+    # str +image.resize_to_width(str src_filename1, ..., int target_width)
+    #
+    # Destructively resize each image with the passed filename (of a filetype
+    # supported by ImageMagick) *IN-PLACE* to the target width (specified in
+    # pixels) and a corresponding height dynamically computed so as to preserve
+    # the aspect ratio of these images.
+    #
+    # Note this function directly modifies the passed images. Consider passing
+    # this function target images manually copied from source images for safety.
+    function +image.resize_to_width() {
+        (( $# >= 2 )) || {
+            echo 'Expected one or more image filenames and one target width.' 1>&2
+            return 1
+        }
+
+        # Target width.
+        local trg_width="${@[-1]}"
+
+        # Resize these images to this target width.
+        #
+        # Note that the trailing "x" character instructs ImageMagick to
+        # dynamically compute target heights to preserve aspect ratios.
+        echo "Resizing images to width ${trg_width}px..."
+        command mogrify -resize "${trg_width}x" "${@[1,-2]}"
     }
 
     # str +image.thumbnail(str src_filename1, ..., int trg_width)
@@ -1481,7 +1543,7 @@ if +command.is pyenv; then
     # * *CANNOT* be defined as a space-delimited string. Doing so causes this
     #   string to be interpreted as a single literal: e.g.,
     #       _PYTHON_VERSIONS='3.9 3.10 3.11 3.12 3.13 3.14'  # <-- bad, which is sad
-    declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.14.0b3 3.13 3.12 3.11 3.10 3.9 pypy3.11)
+    declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.14.0rc3 3.13 3.12 3.11 3.10 3.9 pypy3.11)
 
     # Define one shell alias "python{major}.{minor}" for each previously
     # installed Python version.
@@ -1509,10 +1571,9 @@ if +command.is pyenv; then
 
     # Alias common "pyenv" subcommands.
     alias pye='pyenv'
-    alias pyei='pyenv install'
     alias pyeu='pyenv uninstall'
 
-    # ....................{ FUNCTIONS                      }....................
+    # ....................{ FUNCTIONS ~ enablers           }....................
     # void +python.enable_python(str python_version)
     #
     # Temporarily switch the active Python interpreter under the current shell
@@ -1542,6 +1603,37 @@ if +command.is pyenv; then
         command pyenv global system
     }
 
+    # ....................{ FUNCTIONS ~ installers         }....................
+    # str +python.install_python(str python_version1, ..., str python_versionN)
+    #
+    # (Re)install the CPython interpreter(s) with the passed name(s) via the
+    # third-party "pyenv" manager.
+    function +python.install_python() {
+        (( $# >= 1 )) || {
+            echo 'Expected one or more Python version specifiers.'
+            return 1
+        }
+
+        # (Re)install *ALL* actively maintained CPython interpreters.
+        command pyenv install "${@}"
+    }
+
+
+    # str +python.install_pythons()
+    #
+    # (Re)install *ALL* currently installed CPython interpreters via the
+    # third-party "pyenv" manager.
+    function +python.install_pythons() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.'
+            return 1
+        }
+
+        # (Re)install *ALL* currently installed CPython interpreters.
+        command pyenv install "${_PYTHON_VERSIONS[@]}"
+    }
+
+    # ....................{ FUNCTIONS ~ listers            }....................
     # str +python.list_pythons_installed()
     #
     # Print a list of all Python versions previously installed with the
@@ -1568,20 +1660,6 @@ if +command.is pyenv; then
 
         # List all supported Python versions.
         command pyenv install --list | less
-    }
-
-    # str +python.install_pythons()
-    #
-    # (Re)install *ALL* actively maintained CPython interpreters via the
-    # third-party "pyenv" manager.
-    function +python.install_pythons() {
-        (( $# == 0 )) || {
-            echo 'Expected no arguments.'
-            return 1
-        }
-
-        # (Re)install *ALL* actively maintained CPython interpreters.
-        command pyenv install ${_PYTHON_VERSIONS[@]}
     }
 
     # str +python.upgrade_pip()
@@ -2187,10 +2265,12 @@ alias p='print'
 
 # Two-letter abbreviations for great justice.
 alias ca='cat'
+alias cc='claude'  # (c)laude (c)ode
 alias cl='clear'
 alias cm='chmod'
 alias co='chown'
 alias cr='cp -R'
+alias gc='gemini'  # (g)emini (c)li
 alias gi='git'
 alias in='info'
 alias le='less'
@@ -2209,14 +2289,14 @@ alias umo='umount'
 # * "lram", recursively listing all metal albums sorted by mtime.
 alias lram='+dir.list_subdirs_mtime_depth ~/pub/audio/metal 3'
 
-# ....................{ ALIASES ~ cli                     }....................
+# ....................{ ALIASES ~ cli                      }....................
 # Abbreviations conditionally dependent upon external commands *NOT* guaranteed
 # to be installed by default (i.e., not bundled with "coreutils").
 
 # CLI-specific one-to-one abbreviations.
 +command.is alsamixer && alias am='alsamixer'
 +command.is btop && alias bt='btop'
-+command.is fastfetch && alias fafa='fastfetch --logo-type kitty'
++command.is fastfetch && alias fa='fastfetch --logo-type kitty'  # synopsize the local machine
 +command.is fzf && alias fz='fzf'
 +command.is htop && alias ht='htop'
 +command.is ipython3 && alias ipy='ipython3'
@@ -2248,7 +2328,29 @@ if +command.is vcsh; then
     alias vce='vcsh enter'
 fi
 
-# ....................{ ALIASES ~ cli : grep              }....................
+# ....................{ ALIASES ~ cli : git                }....................
+# If the "gh" command interfacing with GitHub is available...
+if +command.is gh; then
+    # void +github.login()
+    #
+    # Authenticate the local system for remote GitHub access. Note that:
+    # * This function caches authenticated GitHub credentials locally and must
+    #   thus be done only once per system uptime.
+    # * This function must typically be called *BEFORE* running CLI-oriented AI
+    #   tools like Claude Code and Gemini CLI, which require GitHub access to
+    #   perform GitHub-centric tasks (e.g., issue triage).
+    function +github.login() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        # Authenticate the local system for remote GitHub access.
+        command gh auth login
+    }
+fi
+
+# ....................{ ALIASES ~ cli : grep               }....................
 # If an alternative "grep" command (e.g., ripgrep, Silver Surfer) is available,
 # alias "g" and "gr" to the most efficient such command; else, fallback to
 # vanilla "grep" for sanity. Anecdotally:
@@ -2571,18 +2673,13 @@ if +command.is systemctl; then
     # Manage system-wide Systemd units.
     # alias sys='sudo systemctl'
 
-    # Define an alias starting the passed Systemd unit under the current user
-    # *AND* autostart this unit under this user on *ALL* subsequent logins as
-    # this user.
-    alias syue='systemctl enable --now --user'
-
     # Define an alias restarting the passed Systemd unit under the current user.
     alias syur='systemctl restart --user'
 
     # Define an alias tailing the current system logfile. By default, the
     # "journalctl" command *HEADS* rather than *TAILS* this logfile -- a largely
     # useless default that only wastes already scarce time.
-    alias jos='journalctl -e'
+    alias jo='journalctl -e'
 
     # Define an alias tailing the current user logfile.
     alias jou='journalctl -e --user'
@@ -2599,6 +2696,89 @@ if +command.is systemctl; then
         }
 
         command systemctl sleep
+    }
+
+    # void +systemd.restart_unit_user()
+    #
+    # Immediately (re)start the Systemd unit with the passed name under the
+    # current user *WITHOUT* autostarting this unit under all subsequent logins
+    # of the current user.
+    #
+    # Note that this command should *NOT* be run as root. This command neither
+    # requires nor desires supeuser privelages, but instead runs with the same
+    # privelages as the current non-superuser.
+    function +systemd.restart_unit_user() {
+        (( $# == 1 )) || {
+            echo 'Expected one Systemd unit name.' 1>&2
+            return 1
+        }
+
+        #FIXME: Is this *REALLY* the canonical way to restart a Systemd unit?
+        #It's surprising that no single command or option exists for this. Ugh!
+        command systemctl stop --user "${1}"
+        command systemctl start --user "${1}"
+    }
+
+    # void +systemd.enable_unit_system()
+    #
+    # Immediately start the Systemd unit with the passed name under the
+    # superuser *AND* autostart this unit under all subsequent startups as the
+    # superuser.
+    function +systemd.enable_unit_system() {
+        (( $# == 1 )) || {
+            echo 'Expected one Systemd unit name.' 1>&2
+            return 1
+        }
+
+        command systemctl enable --now "${1}"
+    }
+
+    # void +systemd.enable_unit_user()
+    #
+    # Immediately start the Systemd unit with the passed name under the current
+    # user *AND* autostart this unit under all subsequent logins of the current
+    # user.
+    #
+    # Note that this command should *NOT* be run as root. This command neither
+    # requires nor desires supeuser privelages, but instead runs with the same
+    # privelages as the current non-superuser.
+    function +systemd.enable_unit_user() {
+        (( $# == 1 )) || {
+            echo 'Expected one Systemd unit name.' 1>&2
+            return 1
+        }
+
+        command systemctl enable --now --user "${1}"
+    }
+
+    # void +systemd.show_unit_user(unit_name_1, ..., unit_name_N)
+    #
+    # Show a detailed status of the Systemd unit(s) with the passed name(s)
+    # previously started under the current user.
+    #
+    # Note that this command should *NOT* be run as root. This command neither
+    # requires nor desires supeuser privelages, but instead runs with the same
+    # privelages as the current non-superuser.
+    function +systemd.show_unit_user() {
+        (( $# >= 1 )) || {
+            echo 'Expected one or more Systemd unit names.' 1>&2
+            return 1
+        }
+
+        command systemctl --user status "${@}"
+    }
+
+    # void +systemd.list_units()
+    #
+    # List *ALL* Systemd units. This includes both user-specific and system-wide
+    # units in both enabled and disabled variants.
+    function +systemd.list_units() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+
+        command systemctl list-unit-files
     }
 fi
 
