@@ -83,7 +83,8 @@ else
     command hyprctl dispatch focuswindow "pid:${KITTY_PID}"
 fi
 
+#FIXME: Superceded by "misc:on_focus_under_fullscreen = 1" in "userprefs.conf".
 # Fullscreen this focused window. Previously, Hyprland preserved the
 # fullscreen-specific state of previously windows. Now (i.e., as of Hyprland >=
 # 0.53), Hyprland appears to no longer do so. Instead, we force the issue. Sigh!
-command hyprctl dispatch fullscreen
+# command hyprctl dispatch fullscreen
