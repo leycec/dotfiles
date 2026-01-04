@@ -1,5 +1,4 @@
 #!/usr/bin/env zsh
-
 # ====================[ kittydrop                          ]====================
 #
 # --------------------( LICENSE                            )--------------------
@@ -77,8 +76,14 @@ if [[ -z "${KITTY_PID}" ]]; then
 elif [[ "${KITTY_PID}" == "${FOCUS_PID}" ]]; then
     command hyprctl dispatch cyclenext
 # Else, this "kitty" process is *NOT* the currently focused window. In this
-# case, focus this process.
+# case...
 else
+    # Focus this process.
     # command hyprctl dispatch focuswindow "${WORKSPACE_ID},pid:${KITTY_PID}"
     command hyprctl dispatch focuswindow "pid:${KITTY_PID}"
 fi
+
+# Fullscreen this focused window. Previously, Hyprland preserved the
+# fullscreen-specific state of previously windows. Now (i.e., as of Hyprland >=
+# 0.53), Hyprland appears to no longer do so. Instead, we force the issue. Sigh!
+command hyprctl dispatch fullscreen

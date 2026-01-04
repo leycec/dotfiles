@@ -1000,6 +1000,12 @@ if [[ -d ~/hypr/hyde/Scripts ]]; then
             return 1
         }
 
+        # Force the active Python interpreter to be the Arch-managed system
+        # Python interpreter. If this is *NOT* done, installation and usage of
+        # Python-specific packages is *GUARANTEED* to fail with spurious errors.
+        +python.enable_python_system
+
+        # So. Let's do this.
         echo 'Updating Hyde...'
         ~/hypr/hyde/Scripts
         command git pull
@@ -1543,7 +1549,7 @@ if +command.is pyenv; then
     # * *CANNOT* be defined as a space-delimited string. Doing so causes this
     #   string to be interpreted as a single literal: e.g.,
     #       _PYTHON_VERSIONS='3.9 3.10 3.11 3.12 3.13 3.14'  # <-- bad, which is sad
-    declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.14.0rc3 3.13 3.12 3.11 3.10 3.9 pypy3.11)
+    declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.14 3.13 3.12 3.11 3.10 3.9 pypy3.11)
 
     # Define one shell alias "python{major}.{minor}" for each previously
     # installed Python version.
@@ -1599,7 +1605,8 @@ if +command.is pyenv; then
             return 1
         }
 
-        # Temporarily restore the system-managed Python interpreter as the active
+        # Temporarily restore the system-managed Python interpreter as the
+        # active Python interpreter.
         command pyenv global system
     }
 
@@ -2265,12 +2272,10 @@ alias p='print'
 
 # Two-letter abbreviations for great justice.
 alias ca='cat'
-alias cc='claude'  # (c)laude (c)ode
 alias cl='clear'
 alias cm='chmod'
 alias co='chown'
 alias cr='cp -R'
-alias gc='gemini'  # (g)emini (c)li
 alias gi='git'
 alias in='info'
 alias le='less'
@@ -2296,8 +2301,10 @@ alias lram='+dir.list_subdirs_mtime_depth ~/pub/audio/metal 3'
 # CLI-specific one-to-one abbreviations.
 +command.is alsamixer && alias am='alsamixer'
 +command.is btop && alias bt='btop'
++command.is claude && alias cc='claude'  # (c)laude (c)ode
 +command.is fastfetch && alias fa='fastfetch --logo-type kitty'  # synopsize the local machine
 +command.is fzf && alias fz='fzf'
++command.is gemini && alias ge='gemini'
 +command.is htop && alias ht='htop'
 +command.is ipython3 && alias ipy='ipython3'
 +command.is links && alias li='links'
@@ -2433,6 +2440,24 @@ fi
 
 # If the "pacman" command is available, this is Arch Linux. In this case...
 if +command.is pacman; then
+    # If the "reflector" command is also available...
+    if +command.is reflector; then
+        # str +arch.update_mirrors()
+        #
+        # Update the "pacman"-specific mirror list (i.e., the system-wide
+        # "/etc/pacman.d/mirrorlist" configuration file) with the twenty fastest
+        # "pacman"-specific mirrors accessible to the local machine.
+        function +arch.update_mirrors() {
+            (( $# == 0 )) || {
+                echo 'Expected no arguments.' 1>&2
+                return 1
+            }
+
+            command sudo reflector \
+                --verbose --sort rate -l 20 --save /etc/pacman.d/mirrorlist
+        }
+    fi
+
     # In case a command is not found, try to find the package that has it
     function command_not_found_handler {
         local purple='\e[1;35m' bright='\e[0;1m' green='\e[1;32m' reset='\e[0m'
@@ -2451,6 +2476,24 @@ if +command.is pacman; then
             done
         fi
         return 127
+    }
+
+    # str yay(*args, **kwargs)
+    #
+    # High-level wrapper wrapping the lower-level Arch-specific AUR-oriented
+    # "yay" package manager in a safe manner, particularly with respect to
+    # unsafe Python interpreters. Notably, this wrapper forces the active Python
+    # interpreter to be the Arch-managed system Python interpreter rather than
+    # the current user-managed local Python interpreter (e.g., due to "uv" or
+    # "pyenv" shenanigans).
+    function yay() {
+        # Force the active Python interpreter to be the Arch-managed system
+        # Python interpreter. If this is *NOT* done, installation and usage of
+        # Python-specific packages is *GUARANTEED* to fail with spurious errors.
+        +python.enable_python_system
+
+        # Defer to the low-level "yay" command.
+        command yay "${@}"
     }
 
     # Detect the AUR wrapper
@@ -2831,32 +2874,33 @@ fi
     alias ax='antimicrox &!'
     # alias and='antimicrox --daemon --profile ~/yml/kiseki-linux/lutris/2004-sora_no_kiseki_fc/sora-no-kiseki-fc-ps4.gamecontroller.amgp &!'
 }
-+command.is assistant    && alias ass='assistant &!'      # Don't judge me.
-+command.is audacity     && alias aud='audacity &!'
-+command.is chromium     && alias ch='chromium -incognito &!'
-+command.is citra-qt     && alias cq='citra-qt &!'
-+command.is clementine   && alias cl='clementine &!'
-+command.is deadbeef     && alias de='deadbeef &!'
-+command.is deluge-gtk   && alias dg='deluge-gtk &!'
-+command.is fbreader     && alias fb='fbreader &!'
-+command.is firefox      && alias ff='firefox &!'
-+command.is filelight    && alias fl='filelight &!'
-+command.is font-manager && alias fm='font-manager &!'
-+command.is geeqie       && alias gq='geeqie &!'
-+command.is gimp         && alias gm='gimp &!'
-+command.is gparted      && alias gp='gparted &!'
-+command.is libreoffice  && alias lo='libreoffice &!'
-+command.is lutris       && alias lu='lutris &!'
-+command.is mcomix       && alias mc='mcomix &!'
-+command.is nicotine     && alias ni='nicotine &!'
-+command.is nomacs       && alias no='nomacs &!'
-+command.is playonlinux  && alias pol='playonlinux &!'
-+command.is qtcreator    && alias qtc='qtcreator &!'
-+command.is qview        && alias qv='qview &!'
-+command.is retroarch    && alias ra='retroarch &!'
-+command.is rhythmbox    && alias hh='rhythmbox &!'
-+command.is simple-scan  && alias sc='simple-scan &!'
-+command.is strawberry   && alias sb='strawberry &!'
++command.is assistant     && alias ass='assistant &!'      # Don't judge me.
++command.is audacity      && alias aud='audacity &!'
++command.is chromium      && alias ch='chromium -incognito &!'
++command.is citra-qt      && alias cq='citra-qt &!'
++command.is clementine    && alias cl='clementine &!'
++command.is deadbeef      && alias de='deadbeef &!'
++command.is deluge-gtk    && alias dg='deluge-gtk &!'
++command.is fbreader      && alias fb='fbreader &!'
++command.is firefox       && alias ff='firefox &!'
++command.is filelight     && alias fl='filelight &!'
++command.is font-manager  && alias fm='font-manager &!'
++command.is geeqie        && alias gq='geeqie &!'
++command.is gimp          && alias gm='gimp &!'
++command.is gparted       && alias gp='gparted &!'
++command.is libreoffice   && alias lo='libreoffice &!'
++command.is lutris        && alias lu='lutris &!'
++command.is mcomix        && alias mc='mcomix &!'
++command.is nicotine      && alias ni='nicotine &!'
++command.is nomacs        && alias no='nomacs &!'
++command.is playonlinux   && alias pol='playonlinux &!'
++command.is qtcreator     && alias qtc='qtcreator &!'
++command.is qview         && alias qv='qview &!'
++command.is retroarch     && alias ra='retroarch &!'
++command.is rhythmbox     && alias hh='rhythmbox &!'
++command.is sc-controller && alias sc='sc-controller &!'
++command.is simple-scan   && alias sis='simple-scan &!'
++command.is strawberry    && alias sb='strawberry &!'
 +command.is torbrowser-launcher && alias tb='torbrowser-launcher &!'
 
 # If Calibre is installed...
