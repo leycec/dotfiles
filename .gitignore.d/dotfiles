@@ -46,6 +46,8 @@
 !/.config/hypr
 !/.config/hypr/monitors.conf
 !/.config/hypr/userprefs.conf
+!/.config/keyd
+!/.config/keyd/*.conf
 !/.config/kitty
 !/.config/kitty/userprefs.conf
 !/.config/mpd

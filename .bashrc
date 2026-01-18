@@ -27,6 +27,7 @@
 # * "zsh", the One True Shell.
 # * "vim", the One True IDE.
 # * "fzf", the Fuzzy File Finder (FZF).
+# * "bat", a safety conscious "cat" alternative.
 # * "btop", a highly interactive "top" alternative.
 # * "mpd", the Music Player Daemon (MPD).
 # * "ncdu", the NCurses Disk Usage (NCDU) "du" alternative.
@@ -37,6 +38,12 @@
 #
 # * Under Gentoo Linux:
 #    sudo emerge --ask htop keychain mpd ncdu ncmpcpp ripgrep vim zsh
+#
+# --------------------( SEE ALSO                           )--------------------
+# * "keyd" for rebinding keys at the displayer server layer (e.g., Wayland). To
+#   configure, edit:
+#   * "/etc/keyd/default.conf" for the system-wide "keyd" server.
+#   * "~/.config/keyd/default.conf" for the user-specific "keyd" server.
 
 # ....................{ SHELLS                             }....................
 # 1 if the current shell is bash and the empty string otherwise.
@@ -1888,7 +1895,87 @@ fi
 #* DXVK via:
 #      $ WINEPREFIX=your-prefix setup_dxvk install
 
-# If "winecfg" is in the current ${PATH}...
+# If the "protonup-qt" command is in the current ${PATH}...
+if +command.is protonup-qt; then
+    # str +lutris.link_wine_system()
+    #
+    # Create symbolic links from all top-level executables bundled with the most
+    # recent version of Proton (Glorious Eggroll) installed into the
+    # user-specific Lutris Proton installation directory by the "protonup-qt"
+    # GUI into a user-specific directory on the current ${PATH}, effectively
+    # rendering this Proton installation the "system-wide" WINE version for the
+    # current user.
+    #
+    # Note that this function currently requires zsh (rather than bash).
+    function +lutris.link_wine_system() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.' 1>&2
+            return 1
+        }
+        echo 'Detecting Lutris-specific Proton (Glorious Eggroll) installation...'
+
+        # Array containing either the absolute dirname of the most recent
+        # version of Proton (Glorious Eggroll) installed into the user-specific
+        # Lutris Proton installation directory if such a directory exists *OR*
+        # nothing otherwise. Dismantled, this is:
+        # * "<->", the zsh-specific UFO operator matching one or more digits.
+        # * "n", the zsh-specific glob qualifier sorting numerically rather than
+        #   lexicographically.
+        # * "[-1]", the zsh-specific glob qualifier restricting matching to
+        #   *ONLY* the last match.
+        local -a PROTON_DIRNAMES_NEWEST
+        PROTON_DIRNAMES_NEWEST=( "${HOME}/.local/share/lutris/runners/proton/GE-Proton"<->-<->(n[-1]) )
+
+        # If *NO* such directory exists, fail.
+        [[ "${#PROTON_DIRNAMES_NEWEST}" == 1 ]] || {
+            echo 'Lutris-specific Proton (Glorious Eggroll) installation not found.' 1>&2
+            return 1
+        }
+        # Else, such a directory exists.
+
+        # This dirname.
+        local PROTON_DIRNAME_NEWEST="${PROTON_DIRNAMES_NEWEST[1]}"
+        echo 'Lutris-specific Proton (Glorious Eggroll) installation found:'
+        echo "\t${PROTON_DIRNAME_NEWEST}"
+
+        # Absolute dirname of the subdirectory of this directory containing
+        # top-level executables to be symbolically linked.
+        local PROTON_BIN_DIRNAME="${PROTON_DIRNAME_NEWEST}/files/bin"
+
+        # If *NO* such directory exists, fail.
+        [[ -d "${PROTON_BIN_DIRNAME}" ]] || {
+            echo "Source directory ${PROTON_BIN_DIRNAME} not found." 1>&2
+            return 1
+        }
+        # Else, such a directory exists.
+
+        # Absolute dirname of a user-specific directory on the current ${PATH}
+        # to symbolically link *ALL* top-level executables bundled with this
+        # installation into.
+        local TARGET_BIN_DIRNAME="${HOME}/.local/bin"
+        echo 'Symlinking Proton binaries...'
+        echo "...from: \"${PROTON_BIN_DIRNAME}\""
+        echo "...to: \"${TARGET_BIN_DIRNAME}\""
+
+        # If *NO* such directory exists, fail.
+        [[ -d "${TARGET_BIN_DIRNAME}" ]] || {
+            echo "Target directory ${TARGET_BIN_DIRNAME} not found." 1>&2
+            return 1
+        }
+        # Else, such a directory exists.
+
+        # Symbolically link these executables into this target directory.
+        command ln -sf "${PROTON_BIN_DIRNAME}"/* "${TARGET_BIN_DIRNAME}"
+
+        # List the contents of this target directory as a user convenience.
+        echo
+        echo "Target directory ${TARGET_BIN_DIRNAME} contents:"
+        ll "${TARGET_BIN_DIRNAME}"
+    }
+fi
+
+
+# If the WINE-specific "winecfg" command is in the current ${PATH}...
 if +command.is winecfg; then
     # void +wine.conf_prefix(str prefix_dirname)
     #
