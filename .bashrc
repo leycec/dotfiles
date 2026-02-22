@@ -1129,10 +1129,10 @@ if +command.is mogrify; then
             # * "-quality 82" is intentionally *NOT* passed, as that quality
             #   reduction is perceptible to the human eye.
             # * "-strip" is intentionally *NOT* passed, as this option
-            #   *DRAMATICALLY* reduces quality for photographs with embedded colour
-            #   profiles. Since photographs captured by mobile devices embed colour
-            #   profiles *AND* since mobile devices now account for most
-            #   photographs, this option effectively destroys photographs.
+            #   *DRAMATICALLY* reduces quality for photographs with embedded
+            #   colour profiles. Since photographs captured by mobile devices
+            #   embed colour profiles *AND* since mobile devices now account for
+            #   most photographs, this option effectively destroys photographs.
             command mogrify \
                 -thumbnail "${trg_width}" \
                 -define filter:support=2 \
