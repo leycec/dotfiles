@@ -1007,6 +1007,18 @@ if [[ -d ~/hypr/hyde/Scripts ]]; then
             return 1
         }
 
+        # Absolute dirname of the user-specific directory containing Hyde shell
+        # scripts stored in a locally cloned GitHub-hosted Hyde repo.
+        HYDE_SCRIPT_DIRNAME="${HOME}/hypr/hyde/Scripts"
+
+        # Absolute dirname of the user-specific directory containing source Hyde
+        # templates (i.e., default Hyprland configuration files).
+        HYDE_TEMPLATE_DIRNAME="${HOME}/.local/share/hyde/templates/hypr"
+
+        # Absolute dirname of the user-specific directory containing target
+        # Hyprland configuration files.
+        HYPRLAND_CONFIG_DIRNAME="${HOME}/.config/hypr"
+
         # Force the active Python interpreter to be the Arch-managed system
         # Python interpreter. If this is *NOT* done, installation and usage of
         # Python-specific packages is *GUARANTEED* to fail with spurious errors.
@@ -1014,9 +1026,38 @@ if [[ -d ~/hypr/hyde/Scripts ]]; then
 
         # So. Let's do this.
         echo 'Updating Hyde...'
-        ~/hypr/hyde/Scripts
+
+        # Temporarily change the current working directory (CWD) to the locally
+        # cloned GitHub-hosted Hyde repo.
+        pushd "${HYDE_SCRIPT_DIRNAME}" >/dev/null
+
+        # Locally pull all remote changes.
+        echo 'Fetching Hyde changes...'
         command git pull
-        ./install.sh -r
+
+        # Run the Hyde-specific upgrade shell script. Dismantled, this is:
+        # * "-r", replacing *ALL* Hyprland configuration files with
+        #   Hyde-specific templates.
+        # * "-n", ignore Nvidia-specific logic. Nivida: "You are bad, bro."
+        # * "-s", enabling system services. No idea. It's probably a good thing.
+        echo 'Updating Hyde changes...'
+        ./install.sh -rns
+
+        # Manually replace *ALL* local Hyprland configuration files *NOT*
+        # intended to be locally modified by Hyde users (e.g.,
+        # "keybindings.conf", "windowrules.conf") with the most recent versions
+        # of these same files supplied by Hyde itself as so-called "templates."
+        #
+        # Note that this is effectively mandatory. Failure to perform this
+        # replacement typically results in fatal "Config error in file..." files
+        # on the next Hyprland restart, rendering the entire UI unusable.
+        echo 'Overwriting Hyprland configuration with default Hyde templates...'
+        command cp -f \
+            "${HYDE_TEMPLATE_DIRNAME}/"*.conf \
+            "${HYPRLAND_CONFIG_DIRNAME}/"
+
+        # Revert back to the prior CWD.
+        popd >/dev/null
     }
 fi
 
@@ -1556,7 +1597,7 @@ if +command.is pyenv; then
     # * *CANNOT* be defined as a space-delimited string. Doing so causes this
     #   string to be interpreted as a single literal: e.g.,
     #       _PYTHON_VERSIONS='3.9 3.10 3.11 3.12 3.13 3.14'  # <-- bad, which is sad
-    declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.14 3.13 3.12 3.11 3.10 3.9 pypy3.11)
+    declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.15.0a8 3.14 3.13 3.12 3.11 3.10 pypy3.11)
 
     # Define one shell alias "python{major}.{minor}" for each previously
     # installed Python version.
@@ -1570,6 +1611,7 @@ if +command.is pyenv; then
     # ....................{ ALIASES                        }....................
     # Alias actively maintained Python interpreters.
     alias py='python'
+    alias py15='python3.15'
     alias py14='python3.14'
     alias py13='python3.13'
     alias py12='python3.12'
@@ -1924,7 +1966,9 @@ if +command.is protonup-qt; then
         # * "[-1]", the zsh-specific glob qualifier restricting matching to
         #   *ONLY* the last match.
         local -a PROTON_DIRNAMES_NEWEST
-        PROTON_DIRNAMES_NEWEST=( "${HOME}/.local/share/lutris/runners/proton/GE-Proton"<->-<->(n[-1]) )
+        #FIXME: Syntactically broken under "bash". Temporarily restore only this
+        #if and when we require this under "zsh". *shrug*
+        #PROTON_DIRNAMES_NEWEST=( "${HOME}/.local/share/lutris/runners/proton/GE-Proton"<->-<->(n[-1]) )
 
         # If *NO* such directory exists, fail.
         [[ "${#PROTON_DIRNAMES_NEWEST}" == 1 ]] || {
