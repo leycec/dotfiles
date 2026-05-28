@@ -996,6 +996,20 @@ fi
 # If the Hyperland Desktop Environment (Hyde) is locally installed to a mostly
 # sane user-specific directory...
 if [[ -d ~/hypr/hyde/Scripts ]]; then
+    # str +hyde.reload()
+    #
+    # Hot reload (i.e., reload in-place) *ALL* Hyprland configuration files
+    # *WITHOUT* shutting down and restarting the current Hyperland session.
+    function +hyde.reload() {
+        (( $# == 0 )) || {
+            echo "Expected no arguments, but received ${#}." 1>&2
+            return 1
+        }
+
+        # One Hyprland. One Hyprpeople! United, we configure.
+        command hyprctl reload
+    }
+
     # str +hyde.update()
     #
     # Update the Hyperland Desktop Environment (Hyde) to the most recent remote
