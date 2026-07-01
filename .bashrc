@@ -350,11 +350,6 @@ fi
 #     https://github.com/gentoo/sci/blob/master/CONTRIBUTING.md
 export ECHANGELOG_USER="Cecil Curry <leycec@gmail.com>"
 
-#FIXME: Excise us up, please. *sigh*
-# # Enable VDPAU-based hardware acceleration on AMD GPUs. See also:
-# #     https://wiki.archlinux.org/title/Hardware_video_acceleration#Configuring_VDPAU
-# export VDPAU_DRIVER=radeonsi
-
 # ....................{ GLOBALS ~ command : ide            }....................
 # If the "vim" command is in the current ${PATH}...
 if +command.is vim; then
@@ -379,6 +374,11 @@ fi
 #     https://github.com/pyenv/pyenv/blob/master/plugins/python-build/README.md#building-for-maximum-performance
 export PYTHON_CFLAGS='-march=native -mtune=native'
 export PYTHON_CONFIGURE_OPTS='--enable-optimizations --with-lto'
+
+# Enable CPython's Just-in-Time (JIT) compiler when running CPython interpreters
+# for which this JIT was compiled but disabled by default, typically due to
+# being compiled under the "--enable-experimental-jit=yes-off" compilation flag.
+export PYTHON_JIT=1
 
 # ....................{ GLOBALS ~ lang : perl              }....................
 # If the Gentoo-specific "g-cpan" command is in the current ${PATH} *AND* a
@@ -415,9 +415,7 @@ fi
 if [[ -n "${_IS_ZSH}" ]]; then
 #   echo 'Enabling zsh-specific dependencies...'
 
-    # Absolute filename of system-wide zsh-specific "oh-my-zsh" launch script.
-    local _OHMYZSH_FILENAME='/usr/share/oh-my-zsh/oh-my-zsh.sh'
-
+    # ....................{ POWERLEVEL10K                  }....................
     # Absolute filename of the system-wide zsh-specific "powerlevel10k" theme.
     local _POWERLEVEL10K_FILENAME='/usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme'
 
@@ -441,11 +439,15 @@ if [[ -n "${_IS_ZSH}" ]]; then
         # Enable "powerlevel10k".
         source "${_POWERLEVEL10K_FILENAME}"
 
-    # If the user-specific configuration file for "powerlevel10k" exists,
-    # enable this configuration.
+        # If the user-specific configuration file for "powerlevel10k" exists,
+        # enable this configuration.
         [[ -f "${_POWERLEVEL10K_CONFIG_FILENAME}" ]] &&
             source "${_POWERLEVEL10K_CONFIG_FILENAME}"
     fi
+
+    # ....................{ OHMYZSH                        }....................
+    # Absolute filename of system-wide zsh-specific "oh-my-zsh" launch script.
+    local _OHMYZSH_FILENAME='/usr/share/oh-my-zsh/oh-my-zsh.sh'
 
     # If "oh-my-zsh" exists...
     if [[ -f "${_OHMYZSH_FILENAME}" ]]; then
@@ -465,6 +467,8 @@ if [[ -n "${_IS_ZSH}" ]]; then
         # which "oh-my-zsh" inexplicably does by default. Unsurprisingly,
         # everybody hates this. This includes us.
         unsetopt share_history
+
+        # export VI_MODE_SET_CURSOR=true
     fi
 
     #FIXME: Excise us up, please. This is now handled by "pokego" instead.
@@ -511,6 +515,28 @@ function +path.canonicalize() {
 function +dir.list_recursive() {
     # Make it so, ensign.
     ls -lR "${@}" | less
+}
+
+
+# str +dir.list_recursive_empty()
+#
+# Recursively list all transitive empty subdirectories of the current working
+# directory, sorted lexicographically. See also these vaguely related
+# StackOverflow answers from which this function was derived:
+# * https://unix.stackexchange.com/a/531621/117478
+# * https://superuser.com/a/1252660
+function +dir.list_recursive_empty() {
+    (( $# == 0 )) || {
+        echo 'Expected no arguments.' 1>&2
+        return 1
+    }
+
+    # Dismantled, this is:
+    # * "-type d", ignoring *ALL* paths except subdirectories.
+    # * "-empty", ignoring *ALL* subdirectories except empty subdirectories.
+    # * "-print", printing *ALL* empty subdirectories.
+    # * "sort -h", sorting *ALL* empty subdirectories lexicographically.
+    command find . -type d -empty -print | command sort -h
 }
 
 
@@ -1590,13 +1616,24 @@ fi
 #The issue is that literally *ALL* of those utilities are unmaintained. So, "uv"
 #still remains the only viable long-term solution. *sigh*
 
-# If "pyenv" is in the current ${PATH}...
+# Absolute dirname of the local "git" repository providing the live version of
+# "pyenv", locally cloned from the remote GitHub repository as follows:
+#     mkdir -p "${PYENV_REPO}"
+#     git clone https://github.com/pyenv/pyenv.git "${PYENV_REPO}"
+export PYENV_REPO="${HOME}/py/pyenv/repo"
+
+# If this "git" repository for "pyenv" exists, append the subdirectory of this
+# repository providing all "pyenv" shell scripts to the current ${PATH}.
+if [[ -d "${PYENV_REPO}" ]]; then
+    +path.append "${PYENV_REPO}"/bin
+fi
+
+# If "pyenv" is now in the current ${PATH}...
 if +command.is pyenv; then
     # ....................{ SETUP                          }....................
     # Initialize "pyenv" for use under the current shell. See also:
     #     https://github.com/pyenv/pyenv#b-set-up-your-shell-environment-for-pyenv
-    export PYENV_ROOT="${HOME}/py/pyenv"
-    export PATH="${PYENV_ROOT}/bin:${PATH}"
+    export PYENV_ROOT="${HOME}/py/pyenv/root"
     eval "$(pyenv init - zsh)"
 
     # List of *ALL* actively maintained CPython versions, intentionally omitting
@@ -1611,7 +1648,7 @@ if +command.is pyenv; then
     # * *CANNOT* be defined as a space-delimited string. Doing so causes this
     #   string to be interpreted as a single literal: e.g.,
     #       _PYTHON_VERSIONS='3.9 3.10 3.11 3.12 3.13 3.14'  # <-- bad, which is sad
-    declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.15.0a8 3.14 3.13 3.12 3.11 3.10 pypy3.11)
+    declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.15.0b2 3.14 3.13 3.12 3.11 3.10)
 
     # Define one shell alias "python{major}.{minor}" for each previously
     # installed Python version.
@@ -1641,6 +1678,27 @@ if +command.is pyenv; then
     # Alias common "pyenv" subcommands.
     alias pye='pyenv'
     alias pyeu='pyenv uninstall'
+
+    # ....................{ FUNCTIONS ~ pyenv              }....................
+    # void +python.update_pyenv()
+    #
+    # Update the live version of "pyenv" locally cloned from a remote GitHub
+    # repository to the local filesystem.
+    function +python.update_pyenv() {
+        (( $# == 0 )) || {
+            echo 'Expected no arguments.'
+            return 1
+        }
+
+        # Temporarily change to the directory cloning "pyenv".
+        pushd "${PYENV_REPO}" >/dev/null
+
+        # Pull the most recent changes from the remote GitHub repo for "pyenv".
+        command git pull
+
+        # Revert back to the prior current working directory (CWD).
+        popd >/dev/null
+    }
 
     # ....................{ FUNCTIONS ~ enablers           }....................
     # void +python.enable_python(str python_version)
@@ -2336,6 +2394,64 @@ if [[ -n "${_IS_ZSH}" ]]; then
     autoload colors zsh/terminfo
 fi
 
+# ....................{ INTEGRATIONS                      }....................
+if [[ -n "${_IS_ZSH}" ]]; then
+    # ....................{ KEYBOARD                       }....................
+    # Emulate "vim" modality on reading keyboard input.
+    bindkey -v
+
+    # Bind <?> to incrementally search backwards in history like in Vi[M].
+    bindkey -M vicmd '?' history-incremental-search-backward
+
+    # ....................{ CURSOR                         }....................
+    # Style the terminal cursor in a "vim"-centric manner. Note that:
+    # * The current terminal process typically overrides cursor styles set
+    #   below, especially cursor blink. If the active terminal is:
+    #   * Kitty, modify the "~/.config/kitty/userprefs.conf" file instead.
+    # * The magic integers embedded in the following strings carry the following
+    #   semantics:
+    #     Set cursor style (DECSCUSR), VT520.
+    #     0  ⇒  blinking block.
+    #     1  ⇒  blinking block (default).
+    #     2  ⇒  steady block.
+    #     3  ⇒  blinking underline.
+    #     4  ⇒  steady underline.
+    #     5  ⇒  blinking bar, xterm.
+    #     6  ⇒  steady bar, xterm.
+    #
+    # See also this StackOverflow answer, which the following zsh-specific
+    # snippets are strongly inspired by:
+    #     https://unix.stackexchange.com/a/614203/117478
+
+    # Remove zsh's default "vim" mode-switching delay. No idea, honestly. All we
+    # know is that this is requisite. *sigh*
+    export KEYTIMEOUT=1
+
+    # Dynamically change the cursor shape depending on the current "vim" mode.
+    zle-keymap-select () {
+        if [[ ${KEYMAP} == vicmd ]] || [[ $1 = 'block' ]]; then
+            echo -ne "\e[2 q"
+        elif [[ ${KEYMAP} == main ]] ||
+             [[ ${KEYMAP} == viins ]] ||
+             [[ ${KEYMAP} = '' ]] ||
+             [[ $1 = 'beam' ]]; then
+            echo -ne "\e[6 q"
+        fi
+    }
+    zle -N zle-keymap-select
+    # precmd_functions+=(zle-keymap-select)
+
+    # Initially enter "vim" insert mode as the default keymap.
+    zle-line-init() {
+        zle -K viins
+        echo -ne "\e[2 q"
+    }
+    zle -N zle-line-init
+elif [[ -n "${_IS_BASH}" ]]; then
+    # Emulate "vim" modality on reading keyboard input.
+    set -o vi
+fi
+
 # ....................{ OPTIONS                           }....................
 if [[ -n "${_IS_ZSH}" ]]; then
     # Change to directories in command position (i.e., specified as the first
@@ -2352,9 +2468,6 @@ if [[ -n "${_IS_ZSH}" ]]; then
 
     # Disable beeping when interactively typing in the zsh line editor (ZLE).
     unsetopt beep
-
-    # Emulate Vi[m] modality on reading keyboard input.
-    bindkey -v
 elif [[ -n "${_IS_BASH}" ]]; then
     # Change to directories in command position (i.e., specified as the first
     # shell word of a given command).
@@ -2373,9 +2486,6 @@ elif [[ -n "${_IS_BASH}" ]]; then
     # unnecessarily expanding the entirety of the ${PATH} when the first input
     # character is a tab.
     shopt -s no_empty_cmd_completion
-
-    # Emulate Vi[m] modality on reading keyboard input.
-    set -o vi
 fi
 
 # ....................{ ALIASES ~ coreutils               }....................
@@ -3224,3 +3334,18 @@ unset \
     _IS_LOGIN \
     _LS_OPTIONS \
     _MPD_CONF_FILENAME
+
+# ....................{ SCRATCH                           }....................
+# _fix_cursor() {
+#    echo -ne '\e[2 q'
+# }
+#
+# precmd_functions+=(_fix_cursor)
+# zle-line-finish() { echo -ne '\e[2 q' }
+# zle -N zle-line-finish
+# preexec() { echo -ne '\e[2 q' ;}
+#
+#FIXME: Excise us up, please. *sigh*
+# # Enable VDPAU-based hardware acceleration on AMD GPUs. See also:
+# #     https://wiki.archlinux.org/title/Hardware_video_acceleration#Configuring_VDPAU
+# export VDPAU_DRIVER=radeonsi
