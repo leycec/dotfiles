@@ -2,7 +2,7 @@
 # ====================[ kittydrop                          ]====================
 #
 # --------------------( LICENSE                            )--------------------
-# Copyright 2025 by Cecil Curry.
+# Copyright 2025-2026 by Cecil Curry.
 # See "LICENSE" for further details.
 #
 # --------------------( SYNOPSIS                           )--------------------
@@ -57,6 +57,7 @@ FOCUS_PID="$(command hyprctl activewindow | command awk '/pid:/ {print $2}')"
 # print "KITTY_PID: ${KITTY_PID}"
 # print "FOCUS_PID: ${FOCUS_PID}"
 
+# ....................{ KUAKE                              }....................
 # If *NO* such "kitty" process is running under this workspace...
 if [[ -z "${KITTY_PID}" ]]; then
     # Run a new "kitty" process with this class under this workspace.
@@ -83,6 +84,7 @@ else
     command hyprctl dispatch focuswindow "pid:${KITTY_PID}"
 fi
 
+# ....................{ SCRATCH                            }....................
 #FIXME: Superceded by "misc:on_focus_under_fullscreen = 1" in "userprefs.conf".
 # Fullscreen this focused window. Previously, Hyprland preserved the
 # fullscreen-specific state of previously windows. Now (i.e., as of Hyprland >=

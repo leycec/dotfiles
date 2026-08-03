@@ -44,8 +44,10 @@
 !/.config/fontconfig
 !/.config/fontconfig/fonts.conf
 !/.config/hypr
+!/.config/hypr/hyprland.lua
 !/.config/hypr/monitors.conf
 !/.config/hypr/userprefs.conf
+!/.config/hypr/userprefs.lua
 !/.config/keyd
 !/.config/keyd/*.conf
 !/.config/kitty

@@ -1022,6 +1022,21 @@ fi
 # If the Hyperland Desktop Environment (Hyde) is locally installed to a mostly
 # sane user-specific directory...
 if [[ -d ~/hypr/hyde/Scripts ]]; then
+    # str +hyde.dismiss_notifications()
+    #
+    # Dismiss *ALL* Hyprland notifications (i.e., popup windows whose icon is an
+    # exclamation point).
+    function +hyde.dismiss_notifications() {
+        (( $# == 0 )) || {
+            echo "Expected no arguments, but received ${#}." 1>&2
+            return 1
+        }
+
+        # Destroy with power, one-liner!
+        command hyprctl dismissnotify
+    }
+
+
     # str +hyde.reload()
     #
     # Hot reload (i.e., reload in-place) *ALL* Hyprland configuration files
@@ -1352,6 +1367,52 @@ if +command.is pngquant; then
     }
 fi
 
+# ....................{ FUNCTIONS ~ command : mount        }....................
+# void +mount.iso_file(str iso_filename, str mount_dirname)
+#
+# Mount the contents of the passed filename (presumably suffixed by
+# the filetype ".iso") of an ISO file to the passed dirname.
+function +mount.iso_file() {
+    (( $# == 2 )) || {
+        echo 'Expected one source ISO filename and one target mount dirname.' 1>&2
+        return 1
+    }
+
+    local iso_filename="${1}" mount_dirname="${2}"
+
+    #FIXME: Validate that "${iso_filename}" is an ISO-formatted file, too!
+    # If this source ISO file does *NOT* already exist, fail with error.
+    [[ -f "${iso_filename}" ]] || {
+        echo "Source ISO file \"${iso_filename}\" not found or not file." 1>&2
+        return 1
+    }
+    # Else, this source ISO file already exists.
+
+    # If this target mount directory does *NOT* already exist, fail with error.
+    [[ -d "${mount_dirname}" ]] || {
+        echo "Target mount point \"${mount_dirname}\" not found or not directory." 1>&2
+        return 1
+    }
+    # Else, this target mount directory already exists.
+
+    # Explicitly load the "loop" kernel module implicitly required by the
+    # subsequent command. Technically, this is optional. Pragmatically, this is
+    # required. Why? Debugging. If we fail to explicitly load this module
+    # beforehand *AND* this module is unloadable (e.g., due to the kernel having
+    # been updated but the system not rebooted to reload all updated kernel
+    # modules associated with this updated kernel), then the subsequent "mount"
+    # command will fail with an ambiguous error resembling:
+    #     mount: /mnt/muh_mount: failed to set up loop device for muh_iso.iso.
+    #
+    # Explicitly loading this module beforehand exposes this underlying issue:
+    #     modprobe: FATAL: Module loop not found in directory /lib/modules/7.1.4-arch1-1
+    command modprobe loop || return 1
+
+    # Mount this ISO file to this mount dirname, yo!
+    echo "Mounting ISO \"${iso_filename}\" to mount point \"${mount_dirname}\"..."
+    command sudo mount --verbose "${iso_filename}" "${mount_dirname}" -o loop
+}
+
 # ....................{ FUNCTIONS ~ command : net          }....................
 # If the "curl" command is in the current ${PATH}...
 if +command.is curl; then
@@ -1648,7 +1709,7 @@ if +command.is pyenv; then
     # * *CANNOT* be defined as a space-delimited string. Doing so causes this
     #   string to be interpreted as a single literal: e.g.,
     #       _PYTHON_VERSIONS='3.9 3.10 3.11 3.12 3.13 3.14'  # <-- bad, which is sad
-    declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.15.0b2 3.14 3.13 3.12 3.11 3.10)
+    declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.15.0b2 3.14t 3.14 3.13 3.12 3.11 3.10)
 
     # Define one shell alias "python{major}.{minor}" for each previously
     # installed Python version.
@@ -1664,6 +1725,7 @@ if +command.is pyenv; then
     alias py='python'
     alias py15='python3.15'
     alias py14='python3.14'
+    alias py14t='python3.14t'
     alias py13='python3.13'
     alias py12='python3.12'
     alias py11='python3.11'
