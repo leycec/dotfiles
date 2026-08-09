@@ -11,6 +11,9 @@
 -- █▄█ ▄█ ██▄ █▀▄   █▀▀ █▀▄ ██▄ █▀░ ▄█
 --
 -- --------------------( COMMANDS                          )--------------------
+-- Dynamically show all currently active key bindings:
+--       <Super-/>
+--
 -- Useful Hyprland-related commands include:
 -- * Manually reload Hyprland *AFTER* modifying this configuration file:
 --       $ hyprctl reload
@@ -24,23 +27,21 @@
 -- * "#A", the length of container A: e.g.,
 --        #"Hello" == 5
 --
+-- HyDE's default keybinds reside in the following Lua file:
+--     ~/.config/share/hypr/lua/key_binds.lua
+--
 -- --------------------( SEE ALSO                          )--------------------
 -- * Official documentation on Hyprland variables configurable via this file:
 --   https://wiki.hypr.land/0.46.0/Configuring/Variables/#custom-accel-profiles
 -- * Default HYDE "userprefs.conf" template:
 --   https://github.com/prasanthrangan/hyprdots/blob/main/Configs/.config/hypr/userprefs.t2
 
--- ....................{ TODO                              }....................
---FIXME: Migrate to Lua! Super-non-trivial. What a complete mess:
---* We need to follow these instructions *EXTREMELY* closely:
---      https://github.com/HyDE-Project/HyDE/blob/master/MIGRATION-LUA.md
-
 -- ....................{ VARIABLES ~ hyprland              }....................
 -- Define Hyprland-specific global variables globally accessible to *ALL*
 -- subsequently run Hyprland configuration files (including this file).
 
 -- Absolute filename of the third-party "kittydrop" Bash script run below.
-local kittydrop = "/home/leycec/bin/kittydrop"
+local kittydrop = "/home/leycec/zsh/bin/kittydrop"
 
 -- Alias the "mainMod" global referenced throughout key bindings defined below
 -- to the standard <Super> key (e.g., <Windows> key).
@@ -111,14 +112,14 @@ hl.bind("ALT + Return", hl.dsp.window.fullscreen())
 --   away from this terminal to the next window in this workspace.
 hl.bind(
     mainMod .. " + Space",
-    hl.dsp.exec_cmd("/home/leycec/bin/kittydrop")
+    hl.dsp.exec_cmd("/home/leycec/zsh/bin/kittydrop")
+    --FIXME: Uncomment to debug this shadow madness, yo! *sigh*
+    -- hl.dsp.exec_cmd("/home/leycec/zsh/bin/kittydrop >> /tmp/kittydrop.log 2>&1")
 )
 
 -- Bind <Super+ALT+Delete> to immediately kill the current window.
-hl.bind(
-    mainMod .. " + ALT + Backspace",
-    hl.dsp.exec_cmd("~/.config/hypr/scripts/dontkillsteam.sh")  -- killactive, kill the window on focus
-)
+hl.bind(mainMod .. " + ALT + Backspace", hl.dsp.window.close())
+    -- hl.dsp.exec_cmd("~/.config/hypr/scripts/dontkillsteam.sh")  -- killactive, kill the window on focus
 
 -- Bind <Super+ALT+Escape> to interactively shutdown the current session.
 hl.bind(
@@ -338,3 +339,8 @@ hl.window_rule({
 -- "swayidle" on detecting USB-based joypad input and/or output. This effectively
 -- prevents "swayidle" from blanking the screen while gaming.
 --exec-once = wljoywake &
+-- ....................{ TODO                              }....................
+--FIXME: Migrate to Lua! Super-non-trivial. What a complete mess:
+--* We need to follow these instructions *EXTREMELY* closely:
+--      https://github.com/HyDE-Project/HyDE/blob/master/MIGRATION-LUA.md
+

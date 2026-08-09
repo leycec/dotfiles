@@ -44,18 +44,23 @@ WORKSPACE_ID="$(command hyprctl monitors | command grep 'active workspace' | com
 # opened under this workspace.
 KITTY_CLASS="kitty_${WORKSPACE_ID}"
 
-# ID of this "kitty" process if this process is running *OR* the empty string
-# otherwise (i.e., if no such "kitty" process is running under this workspace).
+# Process ID (PID) of this "kitty" process if this process is running *OR* the
+# empty string otherwise (i.e., if no such "kitty" process is running under this
+# workspace).
 KITTY_PID="$(command hyprctl -j clients | jq -r ".[] | select(.class == \"${KITTY_CLASS}\") | .pid")"
 
-# ID of the currently focused process.
-FOCUS_PID="$(command hyprctl activewindow | command awk '/pid:/ {print $2}')"
+# Process ID (PID) of the currently focused window.
+WINDOW_PID="$(command hyprctl activewindow | command awk '/pid:/ {print $2}')"
+
+# Address (i.e., Hyprland-specific uniquely identifying string of) this window.
+WINDOW_ADDRESS="${WORKSPACE_ID},pid:${KITTY_PID}"
 
 # Debug us up, please.
-# print "WORKSPACE_ID: ${WORKSPACE_ID}"
-# print "KITTY_CLASS: ${KITTY_CLASS}"
-# print "KITTY_PID: ${KITTY_PID}"
-# print "FOCUS_PID: ${FOCUS_PID}"
+print "WORKSPACE_ID: ${WORKSPACE_ID}"
+print "KITTY_CLASS: ${KITTY_CLASS}"
+print "KITTY_PID: ${KITTY_PID}"
+print "WINDOW_PID: ${WINDOW_PID}"
+print "WINDOW_ADDRESS: ${WINDOW_ADDRESS}"
 
 # ....................{ KUAKE                              }....................
 # If *NO* such "kitty" process is running under this workspace...
@@ -74,14 +79,19 @@ if [[ -z "${KITTY_PID}" ]]; then
 # * If one or more other windows currently exist in this workspace, focus the
 #   next such window.
 # * Else, silently reduce to a noop.
-elif [[ "${KITTY_PID}" == "${FOCUS_PID}" ]]; then
-    command hyprctl dispatch cyclenext
+elif [[ "${KITTY_PID}" == "${WINDOW_PID}" ]]; then
+    print 'Focusing away from currently focused "kitty" PID '${KITTY_PID}' ...'
+    command hyprctl dispatch 'hl.dsp.window.cycle_next()'
+    command hyprctl dispatch 'hl.dsp.window.bring_to_top()'
+    # command hyprctl dispatch 'hl.dsp.layout("cyclenext")'
 # Else, this "kitty" process is *NOT* the currently focused window. In this
 # case...
 else
     # Focus this process.
+    print 'Focusing previously focused "kitty" window '${KITTY_PID}' ...'
     # command hyprctl dispatch focuswindow "${WORKSPACE_ID},pid:${KITTY_PID}"
-    command hyprctl dispatch focuswindow "pid:${KITTY_PID}"
+    # command hyprctl dispatch "hl.dsp.focus({ address = $WINDOW_ADDRESS })"
+    command hyprctl dispatch 'hl.dsp.focus({ window = "pid:'$KITTY_PID'" })'
 fi
 
 # ....................{ SCRATCH                            }....................
