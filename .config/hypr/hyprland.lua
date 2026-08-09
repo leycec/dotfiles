@@ -42,6 +42,10 @@
 -- Absolute filename of the third-party "kittydrop" Bash script run below.
 local kittydrop = "/home/leycec/bin/kittydrop"
 
+-- Alias the "mainMod" global referenced throughout key bindings defined below
+-- to the standard <Super> key (e.g., <Windows> key).
+local mainMod = "SUPER"
+
 --FIXME: Doesn't appear to do anything, sadly. *sigh*
 -- Absolute or relative name of the command (i.e., executable file) responsible
 -- for locking the screen on idle *OR* the empty string to disable locking. See
@@ -87,17 +91,17 @@ hl.config({
 -- Rebind default key bindings unbound below to alternate key bindings,
 -- copy-pasted as is from the official "keybindings.conf" file.
 -- First, unbind all existing bindings currently bound to these keys for safety.
-hl.unbind("Alt" .. " + " .. "Return")
-hl.unbind("$mainMod" .. " + " .. "Space")
-hl.unbind("$mainMod" .. " + " .. "Backspace")
-hl.unbind("$mainMod" .. " + " .. "Escape")
-hl.unbind("$mainMod" .. " + " .. "W")
+hl.unbind("ALT + Return")
+hl.unbind(mainMod .. " + Space")
+hl.unbind(mainMod .. " + Backspace")
+hl.unbind(mainMod .. " + Escape")
+hl.unbind(mainMod .. " + W")
 
--- Bind <Alt+Enter> to toggle fullscreen mode for the current window.
+-- Bind <ALT+Enter> to toggle fullscreen mode for the current window.
 --
 -- Note that this used to be the Hyde default. For unknown reasons I personally
 -- find suspicious, Hyde now binds this toggle to... <Shift-F11>!? Sheer madness.
-hl.bind("Alt" .. " + " .. "Return", hl.dsp.window.fullscreen())
+hl.bind("ALT + Return", hl.dsp.window.fullscreen())
 
 -- Bind <Super+Spacebar> to a Kuake-like workspace-specific Kitty terminal.
 -- Specifically, toggle between either:
@@ -106,27 +110,24 @@ hl.bind("Alt" .. " + " .. "Return", hl.dsp.window.fullscreen())
 -- * Else, this terminal is the currently focused window. In this case, focus
 --   away from this terminal to the next window in this workspace.
 hl.bind(
-    "$mainMod" .. " + " .. "Space",
+    mainMod .. " + Space",
     hl.dsp.exec_cmd("/home/leycec/bin/kittydrop")
 )
 
---FIXME: Looks like we should be deferring to "killactive" here. *sigh*
--- Bind <Super+Alt+Delete> to immediately kill the current window.
+-- Bind <Super+ALT+Delete> to immediately kill the current window.
 hl.bind(
-    "$mainMod + Alt" .. " + " .. "Backspace",
-    hl.dsp.exec_cmd("~/.config/hypr/scripts/dontkillsteam.sh")
+    mainMod .. " + ALT + Backspace",
+    hl.dsp.exec_cmd("~/.config/hypr/scripts/dontkillsteam.sh")  -- killactive, kill the window on focus
 )
--- killactive, kill the window on focus
 
---FIXME: Looks like we should be deferring to "logout mena" here. *sigh*
--- Bind <Super+Alt+Escape> to interactively shutdown the current session.
-hl.bind("$mainMod + Alt" .. " + " .. "Escape", hl.dsp.exec_cmd("~/.config/hypr/scripts/logoutlaunch.sh 1"))
--- logout menu
+-- Bind <Super+ALT+Escape> to interactively shutdown the current session.
+hl.bind(
+    mainMod .. " + ALT + Escape",
+    hl.dsp.exec_cmd("~/.config/hypr/scripts/logoutlaunch.sh 1")  -- logout menu
+)
 
---FIXME: Looks like we should be deferring to "toggle waybar" here. *sigh*
 -- Bind <Super+w> to toggle Waybar visibility on and off.
-hl.bind("$mainMod" .. " + " .. "W", hl.dsp.exec_cmd("killall waybar || waybar"))
--- toggle waybar
+hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("killall waybar || waybar")) -- toggle waybar
 
 -- ....................{ KEYS ~ workspace                  }....................
 -- Switch workspaces with <mainMod+[w-v]>. By default, Hyprland binds keys to
@@ -144,15 +145,15 @@ hl.bind("$mainMod" .. " + " .. "W", hl.dsp.exec_cmd("killall waybar || waybar"))
 --     will probably never be resolved. Let's just roll with the punches, folks.
 
 -- First, unbind all existing bindings currently bound to these keys for safety.
-hl.unbind("$mainMod" .. " + " .. "E")
-hl.unbind("$mainMod" .. " + " .. "U")
-hl.unbind("$mainMod" .. " + " .. "P")  -- <-- unbinds default screen capture key binding
-hl.unbind("$mainMod" .. " + " .. "period")
-hl.unbind("$mainMod" .. " + " .. "comma")
-hl.unbind("$mainMod" .. " + " .. "O")
-hl.unbind("$mainMod" .. " + " .. "Q")  -- <-- unbinds default window killing key binding
-hl.unbind("$mainMod" .. " + " .. "J")  -- <-- unbinds default window layout key binding
-hl.unbind("$mainMod" .. " + " .. "K")  -- <-- unbinds default keyboard layout key binding
+hl.unbind(mainMod .. " + E")
+hl.unbind(mainMod .. " + U")
+hl.unbind(mainMod .. " + P")  -- <-- unbinds default screen capture key binding
+hl.unbind(mainMod .. " + period")
+hl.unbind(mainMod .. " + comma")
+hl.unbind(mainMod .. " + O")
+hl.unbind(mainMod .. " + Q")  -- <-- unbinds default window killing key binding
+hl.unbind(mainMod .. " + J")  -- <-- unbinds default window layout key binding
+hl.unbind(mainMod .. " + K")  -- <-- unbinds default keyboard layout key binding
 
 -- Next, rebind workspace switching to these keys.
 --
@@ -164,15 +165,15 @@ hl.unbind("$mainMod" .. " + " .. "K")  -- <-- unbinds default keyboard layout ke
 -- one another with only minute changes. Sadly, the Hyprland scripting language
 -- isn't exactly Python. The result violates even the Don't Repeat Yourself
 -- (DRY) Principle but is probably the best that can be done for now. We sigh.
-hl.bind("$mainMod" .. " + " .. "E", hl.dsp.focus({ workspace = 1 }))
-hl.bind("$mainMod" .. " + " .. "U", hl.dsp.focus({ workspace = 2 }))
-hl.bind("$mainMod" .. " + " .. "P", hl.dsp.focus({ workspace = 3 }))
-hl.bind("$mainMod" .. " + " .. "period", hl.dsp.focus({ workspace = 4 }))
-hl.bind("$mainMod" .. " + " .. "comma", hl.dsp.focus({ workspace = 5 }))
-hl.bind("$mainMod" .. " + " .. "O", hl.dsp.focus({ workspace = 6 }))
-hl.bind("$mainMod" .. " + " .. "Q", hl.dsp.focus({ workspace = 7 }))
-hl.bind("$mainMod" .. " + " .. "J", hl.dsp.focus({ workspace = 8 }))
-hl.bind("$mainMod" .. " + " .. "K", hl.dsp.focus({ workspace = 9 }))
+hl.bind(mainMod .. " + E", hl.dsp.focus({ workspace = 1 }))
+hl.bind(mainMod .. " + U", hl.dsp.focus({ workspace = 2 }))
+hl.bind(mainMod .. " + P", hl.dsp.focus({ workspace = 3 }))
+hl.bind(mainMod .. " + period", hl.dsp.focus({ workspace = 4 }))
+hl.bind(mainMod .. " + comma", hl.dsp.focus({ workspace = 5 }))
+hl.bind(mainMod .. " + O", hl.dsp.focus({ workspace = 6 }))
+hl.bind(mainMod .. " + Q", hl.dsp.focus({ workspace = 7 }))
+hl.bind(mainMod .. " + J", hl.dsp.focus({ workspace = 8 }))
+hl.bind(mainMod .. " + K", hl.dsp.focus({ workspace = 9 }))
 
 -- ....................{ MOUSE                             }....................
 -- General input configuration generically applicable to both keyboard and

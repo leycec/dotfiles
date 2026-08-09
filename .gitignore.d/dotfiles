@@ -45,13 +45,10 @@
 !/.config/fontconfig/fonts.conf
 !/.config/hypr
 !/.config/hypr/hyprland.lua
-!/.config/hypr/monitors.conf
-!/.config/hypr/userprefs.conf
-!/.config/hypr/userprefs.lua
 !/.config/keyd
 !/.config/keyd/*.conf
 !/.config/kitty
-!/.config/kitty/userprefs.conf
+!/.config/kitty/kitty.conf
 !/.config/mpd
 !/.config/mpd/mpd.conf
 !/.config/ncmpcpp

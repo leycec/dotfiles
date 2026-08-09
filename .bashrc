@@ -1709,7 +1709,7 @@ if +command.is pyenv; then
     # * *CANNOT* be defined as a space-delimited string. Doing so causes this
     #   string to be interpreted as a single literal: e.g.,
     #       _PYTHON_VERSIONS='3.9 3.10 3.11 3.12 3.13 3.14'  # <-- bad, which is sad
-    declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.15.0b2 3.14t 3.14 3.13 3.12 3.11 3.10)
+    declare -g _PYTHON_VERSIONS; _PYTHON_VERSIONS=(3.15.0rc1 3.14t 3.14 3.13 3.12 3.11 3.10)
 
     # Define one shell alias "python{major}.{minor}" for each previously
     # installed Python version.
