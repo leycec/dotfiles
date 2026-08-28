@@ -29,6 +29,10 @@
 # * Hyprland.
 # * Kitty.
 # * zsh.
+#
+# --------------------( SEE ALSO                           )--------------------
+# * Official documentation on Hyprland's Lua-based dispatchers:
+#       https://wiki.hypr.land/Configuring/Basics/Dispatchers
 
 # ....................{ PREAMBLE                           }....................
 # Enable shell strictness for sanity. See also:
@@ -81,7 +85,13 @@ if [[ -z "${KITTY_PID}" ]]; then
 # * Else, silently reduce to a noop.
 elif [[ "${KITTY_PID}" == "${WINDOW_PID}" ]]; then
     print 'Focusing away from currently focused "kitty" PID '${KITTY_PID}' ...'
+
+    # Switch focus to the next window in the internal window list for the active
+    # workspace. Note that this *MUST* be done before bringing this window to
+    # the top of this window list.
     command hyprctl dispatch 'hl.dsp.window.cycle_next()'
+
+    # Bring this window to the top of this window list.
     command hyprctl dispatch 'hl.dsp.window.bring_to_top()'
     # command hyprctl dispatch 'hl.dsp.layout("cyclenext")'
 # Else, this "kitty" process is *NOT* the currently focused window. In this

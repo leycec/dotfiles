@@ -691,6 +691,39 @@ function +rc.edit() {
 # ....................{ FUNCTIONS ~ command                }....................
 # Functions conditionally dependent upon the existence of one or more commands.
 
+# ....................{ FUNCTIONS ~ command : ai           }....................
+# If "hf" (i.e., the HuggingFace CLI) is in the current ${PATH}...
+if +command.is hf; then
+    # str +huggingface.download_file(str repo_name, str filename)
+    #
+    # Locally download the passed filename from the remote HuggingFace-hosted
+    # git repository with the passed repository name into the current working
+    # directory: e.g.,
+    #     +huggingface.download_file \
+    #         unsloth/gemma-4-26B-A4B-it-GGUF gemma-4-26B-A4B-it-UD-IQ4_XS.gguf
+    #
+    # Note that:
+    # * Filenames should be browsed via the "Files and versions" tab at the top
+    #   of every HuggingFace-hosted git repository.
+    # * The HuggingFace CLI creates a spurious ".cache/" dot directory in the
+    #   current working directory on successfully downloading this file. This
+    #   dot directory is safely removable -- and usually should be. *sigh*
+    function +huggingface.download_file() {
+        (( $# == 2 )) || {
+            echo 'Expected one git repository name and one filename.' 1>&2
+            return 1
+        }
+
+        # Instruct the HuggingFace CLI to download this file. Dismantled, this
+        # is:
+        # * "--local-dir", downloading this file into the current working
+        #   directory. By default, this command caches this file into an
+        #   unreadable filename centralized in the "~/.cache/huggingface"
+        #   subdirectory, which is entirely useless for most purposes. *sigh*
+        command hf download "${@}" --local-dir .
+    }
+fi
+
 # ....................{ FUNCTIONS ~ command : arch : zip   }....................
 # If "zip" is in the current ${PATH}...
 if +command.is zip; then
@@ -2071,6 +2104,153 @@ fi
 #* DXVK via:
 #      $ WINEPREFIX=your-prefix setup_dxvk install
 
+# If the WINE-specific "wine" command is in the current ${PATH}...
+if +command.is wine; then
+    #FIXME: Improve, please. Ideally, it shouldn't be necessary to manually
+    #specify the WINE prefix dirname. Instead, this script should be capable of
+    #simply iterating up directories from the passed "executable_filename" until
+    #it discovers a directory whose structure resembles that of a WINE prefix.
+
+    # void +wine.run(str prefix_dirname, str executable_filename)
+    #
+    # Run the Windows-specific executable with the passed filename under the
+    # WINE prefix rooted at the directory with the passed dirname.
+    function +wine.run() {
+        (( $# == 2 )) || {
+            echo 'Expected one WINE prefix dirname and one Windows executable filename.' 1>&2
+            return 1
+        }
+
+        # Canonicalize this dirname. Why? Because WINE explicitly prohibits
+        # relative dirnames: e.g.,
+        #     $ WINEPREFIX="." command winecfg
+        #     wine: invalid directory . in WINEPREFIX: not an absolute path
+        local prefix_dirname; prefix_dirname="$(+path.canonicalize "${1}")"
+        local executable_filename="${2}"
+
+        # If this WINE prefix directory does *NOT* exist, fail.
+        [[ -d "${prefix_dirname}" ]] || {
+            echo 'WINE prefix directory "'${prefix_dirname}'" not found.' 1>&2
+            return 1
+        }
+        # Else, this WINE prefix directory exists.
+
+        # Run this Windows executable under this WINE prefix.
+        WINEPREFIX="${prefix_dirname}" command wine "${executable_filename}"
+    }
+
+
+    # void +wine.configure_gamepad(str prefix_dirname)
+    #
+    # Configure gamepads (i.e., joysticks) under the WINE prefix rooted at the
+    # directory with the passed dirname. If you have *ANY* issues whatsoever
+    # with gamepads under WINE (Proton), this is the first command you should
+    # run.
+    #
+    # Common issues resolvable with this WINE-specific gamepad GUI include:
+    # * Disabling "hidraw" for Sony DualShock and DualSense controllers.
+    #   "hidraw" should *ALWAYS* be enabled for these controllers.
+    # * Enabling one or more imaginary Sony DualShock and DualSense controllers
+    #   for each such physical controller. For unknown reasons, WINE (Proton)
+    #   currently has a regression whereby the DS4 is erroneously detected as
+    #   two separate controllers:
+    #   * A generic "Wireless Controller", which is actually the working DS4 and
+    #     should be left enabled. Awful. We know.
+    #   * A non-generic "Controller (Xbox360 for Windows)", which is merely an
+    #     imaginary controller *WHICH SHOULD BE EXPLICITLY DISABLED.*
+    #
+    # Failing to resolve *BOTH* of the above issues results in a DS4 that either
+    # fails to work entirely or superficially works but actually also fails by
+    # injecting spurious button presses into the gamepad input stream. *AWFUL*.
+    function +wine.configure_gamepad() {
+        (( $# == 1 )) || {
+            echo 'Expected one WINE prefix dirname.' 1>&2
+            return 1
+        }
+
+        # Canonicalize this dirname. Why? Because WINE explicitly prohibits
+        # relative dirnames: e.g.,
+        #     $ WINEPREFIX="." command winecfg
+        #     wine: invalid directory . in WINEPREFIX: not an absolute path
+        local prefix_dirname; prefix_dirname="$(+path.canonicalize "${1}")"
+
+        # If this WINE prefix directory does *NOT* exist, fail.
+        [[ -d "${prefix_dirname}" ]] || {
+            echo 'WINE prefix directory "'${prefix_dirname}'" not found.' 1>&2
+            return 1
+        }
+        # Else, this WINE prefix directory exists.
+
+        # Configure gamepads under this WINE prefix.
+        WINEPREFIX="${prefix_dirname}" command wine control joy.cpl
+    }
+fi
+
+
+# If the WINE-specific "winecfg" command is in the current ${PATH}...
+if +command.is winecfg; then
+    # void +wine.configure_prefix(str prefix_dirname)
+    #
+    # Configure the existing 32- or 64-bit WINE prefix rooted at the directory
+    # with the passed dirname.
+    function +wine.configure_prefix() {
+        (( $# == 1 )) || {
+            echo 'Expected one WINE prefix dirname.' 1>&2
+            return 1
+        }
+
+        # Canonicalize this dirname. Why? Because WINE explicitly prohibits
+        # relative dirnames: e.g.,
+        #     $ WINEPREFIX="." command winecfg
+        #     wine: invalid directory . in WINEPREFIX: not an absolute path
+        local prefix_dirname; prefix_dirname="$(+path.canonicalize "${1}")"
+
+        # If this WINE prefix directory does *NOT* exist, fail.
+        [[ -d "${prefix_dirname}" ]] || {
+            echo 'WINE prefix directory "'${prefix_dirname}'" not found.' 1>&2
+            return 1
+        }
+        # Else, this WINE prefix directory exists.
+
+        # Configure this WINE prefix.
+        echo 'Configuring WINE prefix "'${prefix_dirname}'"...'
+        +wine.make_prefix_64 "${@}"
+    }
+
+
+    # void +wine.make_prefix_64(str prefix_dirname)
+    #
+    # Create a new 64-bit WINE prefix rooted at the directory with the passed
+    # dirname.
+    function +wine.make_prefix_64() {
+        (( $# == 1 )) || {
+            echo 'Expected one WINE prefix dirname.' 1>&2
+            return 1
+        }
+
+        # Canonicalize this dirname. Why? Because WINE explicitly prohibits
+        # relative dirnames: e.g.,
+        #     $ WINEPREFIX="." command winecfg
+        #     wine: invalid directory . in WINEPREFIX: not an absolute path
+        local prefix_dirname; prefix_dirname="$(+path.canonicalize "${1}")"
+        echo 'Creating WINE prefix "'${prefix_dirname}'"...'
+
+        # When our one-liner powers combine!
+        WINEPREFIX="${prefix_dirname}" command winecfg
+    }
+
+
+    # void +wine.make_prefix_32(str prefix_dirname)
+    #
+    # Create a new 32-bit WINE prefix rooted at the directory with the passed
+    # dirname.
+    function +wine.make_prefix_32() {
+        # That's how the Unix shell was won.
+        WINEARCH='win32' +wine.make_prefix_64 "${@}"
+    }
+fi
+
+
 # If the "protonup-qt" command is in the current ${PATH}...
 if +command.is protonup-qt; then
     # str +lutris.link_wine_system()
@@ -2149,104 +2329,6 @@ if +command.is protonup-qt; then
         echo
         echo "Target directory ${TARGET_BIN_DIRNAME} contents:"
         ll "${TARGET_BIN_DIRNAME}"
-    }
-fi
-
-
-# If the WINE-specific "winecfg" command is in the current ${PATH}...
-if +command.is winecfg; then
-    # void +wine.conf_prefix(str prefix_dirname)
-    #
-    # Configure the existing 32- or 64-bit WINE prefix rooted at the directory
-    # with the passed dirname.
-    function +wine.conf_prefix() {
-        (( $# == 1 )) || {
-            echo 'Expected one WINE prefix dirname.' 1>&2
-            return 1
-        }
-
-        # Canonicalize this dirname. Why? Because WINE explicitly prohibits
-        # relative dirnames: e.g.,
-        #     $ WINEPREFIX="." command winecfg
-        #     wine: invalid directory . in WINEPREFIX: not an absolute path
-        local prefix_dirname; prefix_dirname="$(+path.canonicalize "${1}")"
-
-        # If this WINE prefix directory does *NOT* exist, fail.
-        [[ -d "${prefix_dirname}" ]] || {
-            echo 'WINE prefix directory "'${prefix_dirname}'" not found.' 1>&2
-            return 1
-        }
-        # Else, this WINE prefix directory exists.
-
-        # Configure this WINE prefix.
-        echo 'Configuring WINE prefix "'${prefix_dirname}'"...'
-        +wine.make_prefix_64 "${@}"
-    }
-
-
-    # void +wine.make_prefix_64(str prefix_dirname)
-    #
-    # Create a new 64-bit WINE prefix rooted at the directory with the passed
-    # dirname.
-    function +wine.make_prefix_64() {
-        (( $# == 1 )) || {
-            echo 'Expected one WINE prefix dirname.' 1>&2
-            return 1
-        }
-
-        # Canonicalize this dirname. Why? Because WINE explicitly prohibits
-        # relative dirnames: e.g.,
-        #     $ WINEPREFIX="." command winecfg
-        #     wine: invalid directory . in WINEPREFIX: not an absolute path
-        local prefix_dirname; prefix_dirname="$(+path.canonicalize "${1}")"
-        echo 'Creating WINE prefix "'${prefix_dirname}'"...'
-
-        # When our one-liner powers combine!
-        WINEPREFIX="${prefix_dirname}" command winecfg
-    }
-
-
-    # void +wine.make_prefix_32(str prefix_dirname)
-    #
-    # Create a new 32-bit WINE prefix rooted at the directory with the passed
-    # dirname.
-    function +wine.make_prefix_32() {
-        # That's how the Unix shell was won.
-        WINEARCH='win32' +wine.make_prefix_64 "${@}"
-    }
-
-
-    #FIXME: Improve, please. Ideally, it shouldn't be necessary to manually
-    #specify the WINE prefix dirname. Instead, this script should be capable of
-    #simply iterating up directories from the passed "executable_filename" until
-    #it discovers a directory whose structure resembles that of a WINE prefix.
-
-    # void +wine.run(str prefix_dirname, str executable_filename)
-    #
-    # Run the Windows-specific executable with the passed filename under the
-    # WINE prefix rooted at the directory with the passed dirname.
-    function +wine.run() {
-        (( $# == 2 )) || {
-            echo 'Expected one WINE prefix dirname and one Windows executable filename.' 1>&2
-            return 1
-        }
-
-        # Canonicalize this dirname. Why? Because WINE explicitly prohibits
-        # relative dirnames: e.g.,
-        #     $ WINEPREFIX="." command winecfg
-        #     wine: invalid directory . in WINEPREFIX: not an absolute path
-        local prefix_dirname; prefix_dirname="$(+path.canonicalize "${1}")"
-        local executable_filename="${2}"
-
-        # If this WINE prefix directory does *NOT* exist, fail.
-        [[ -d "${prefix_dirname}" ]] || {
-            echo 'WINE prefix directory "'${prefix_dirname}'" not found.' 1>&2
-            return 1
-        }
-        # Else, this WINE prefix directory exists.
-
-        # Run this Windows executable in this WINE prefix.
-        WINEPREFIX="${prefix_dirname}" command wine "${executable_filename}"
     }
 fi
 
@@ -3219,6 +3301,7 @@ fi
 +command.is simple-scan   && alias sis='simple-scan &!'
 +command.is strawberry    && alias sb='strawberry &!'
 +command.is torbrowser-launcher && alias tb='torbrowser-launcher &!'
++command.is xnviewmp      && alias xn='xnviewmp &!'
 
 # If Calibre is installed...
 if +command.is calibre; then
